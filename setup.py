@@ -8,7 +8,7 @@ import sys
 from setuptools import setup, find_namespace_packages
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
-import click.plus  # noqa: E402
+import setuptools.github  # noqa: E402
 
 
 def hubversion(gdata, fallback):
@@ -63,21 +63,21 @@ def update_version(data, path, fallback):
 
 
 version = update_version(
-    os.getenv("GITHUB_DUMP"), click.plus.__file__, click.plus.__version__
+    os.getenv("GITHUB_DUMP"), setuptools.github.__file__, setuptools.github.__version__
 )
 
 packages = find_namespace_packages(where="src")
-packages.remove("click")
+packages.remove("setuptools")
 
 setup(
-    name="click-plus",
+    name="setuptools-github",
     version=version,
-    url="https://github.com/cav71/click-plus",
+    url="https://github.com/cav71/setuptools-github",
     packages=packages,
-    package_dir={"click.plus": "src/click/plus"},
-    description="collection of click extensions",
+    package_dir={"setuptools.github": "src/setuptools/github"},
+    description="supports github releases",
     long_description=pathlib.Path("README.rst").read_text(),
-    install_requires=["click"],
+    install_requires=["setuptools"],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Console",
