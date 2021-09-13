@@ -1,4 +1,3 @@
-import os
 import re
 
 
@@ -32,7 +31,7 @@ def initversion(initfile, var, value, inplace=None):
     expr = re.compile(f"^{var}\\s*=\\s*['\\\"](?P<value>[^\\\"']+)['\\\"]")
     fixed = None
     lines = []
-    input_lines = initfile.read_text().split(os.linesep)
+    input_lines = initfile.read_text().split("\n")
     for line in reversed(input_lines):
         if fixed:
             lines.append(line)
@@ -44,7 +43,7 @@ def initversion(initfile, var, value, inplace=None):
                 x, y = match.span(1)
                 line = line[:x] + value + line[y:]
         lines.append(line)
-    txt = os.linesep.join(reversed(lines))
+    txt = "\n".join(reversed(lines))
     if inplace:
         with initfile.open("w") as fp:
             fp.write(txt)
