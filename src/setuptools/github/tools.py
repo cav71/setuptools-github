@@ -23,15 +23,19 @@ def get_module_var(
                 for target in subnode.targets:
                     if target.id not in self.keys:
                         continue
-                    assert isinstance(subnode.value, (ast.Str, ast.Constant)), (
+                    assert isinstance(
+                        subnode.value, (ast.Num, ast.Str, ast.Constant)
+                    ), (
                         f"cannot extract non Constant variable "
                         f"{target.id} ({type(subnode.value)})"
                     )
-                    self.result[target.id] = (
-                        subnode.value.s
-                        if isinstance(subnode.value, ast.Str)
-                        else subnode.value.value
-                    )
+                    if isinstance(subnode.value, ast.Str):
+                        value = subnode.value.s
+                    elif isinstance(subnode.value, ast.Num):
+                        value = subnode.value.n
+                    else:
+                        value = subnode.value.value
+                    self.result[target.id] = value
             return self.generic_visit(node)
 
     tree = ast.parse(Path(initfile).read_text())
