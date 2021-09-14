@@ -27,7 +27,11 @@ def get_module_var(
                         f"cannot extract non Constant variable "
                         f"{target.id} ({type(subnode.value)})"
                     )
-                    self.result[target.id] = subnode.value.value
+                    self.result[target.id] = (
+                        subnode.value.s
+                        if isinstance(subnode.value, ast.Str)
+                        else subnode.value.value
+                    )
             return self.generic_visit(node)
 
     tree = ast.parse(Path(initfile).read_text())
