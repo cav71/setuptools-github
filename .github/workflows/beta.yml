@@ -78,7 +78,7 @@ jobs:
 
       - name: Pyblish package to pypi
         env:
-          PYTHONPATH: src
+          # PYTHONPATH: src
           GITHUB_DUMP: ${{ toJson(github) }}
         run: |
           python -m build
