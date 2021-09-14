@@ -2,13 +2,17 @@ import re
 import json
 import os
 import pathlib
-import sys
-
 
 from setuptools import setup, find_namespace_packages
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
-import setuptools.github  # noqa: E402
+
+def getversion(initfile):
+    expr = re.compile("^__version__\\s*=\\s*['\\\"](?P<value>[^\\\"']+)['\\\"]")
+    input_lines = initfile.read_text().split("\n")
+    for line in reversed(input_lines):
+        match = expr.search(line)
+        if match:
+            return match.group("value")
 
 
 def hubversion(gdata, fallback):
@@ -62,9 +66,8 @@ def update_version(data, path, fallback):
     return version
 
 
-version = update_version(
-    os.getenv("GITHUB_DUMP"), setuptools.github.__file__, setuptools.github.__version__
-)
+initfile = pathlib.Path(__file__).parent / "src/setuptools/github/__init__.py"
+version = update_version(os.getenv("GITHUB_DUMP"), initfile, getversion(initfile))
 
 packages = find_namespace_packages(where="src")
 packages.remove("setuptools")
