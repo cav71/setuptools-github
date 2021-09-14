@@ -52,7 +52,7 @@ def set_module_var(initfile: Union[str, Path], var: str, value: Any) -> Tuple[An
     expr = re.compile(f"^{var}\\s*=\\s*['\\\"](?P<value>[^\\\"']+)['\\\"]")
     fixed = None
     lines = []
-    input_lines = initfile.read_text().split("\n")
+    input_lines = Path(initfile).read_text().split("\n")
     for line in reversed(input_lines):
         if fixed:
             lines.append(line)
@@ -66,7 +66,7 @@ def set_module_var(initfile: Union[str, Path], var: str, value: Any) -> Tuple[An
         lines.append(line)
     txt = "\n".join(reversed(lines))
 
-    with initfile.open("w") as fp:
+    with Path(initfile).open("w") as fp:
         fp.write(txt)
     return fixed, txt
 
