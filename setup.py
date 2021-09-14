@@ -80,6 +80,7 @@ setup(
     package_dir={"setuptools.github": "src/setuptools/github"},
     description="supports github releases",
     long_description=pathlib.Path("README.rst").read_text(),
+    long_description_content_type="text/x-rst",
     install_requires=["setuptools"],
     classifiers=[
         "Development Status :: 4 - Beta",
