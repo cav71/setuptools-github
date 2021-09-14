@@ -23,7 +23,7 @@ def get_module_var(
                 for target in subnode.targets:
                     if target.id not in self.keys:
                         continue
-                    assert isinstance(subnode.value, ast.Constant), (
+                    assert isinstance(subnode.value, (ast.Str, ast.Constant)), (
                         f"cannot extract non Constant variable "
                         f"{target.id} ({type(subnode.value)})"
                     )
