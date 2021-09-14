@@ -1,3 +1,4 @@
+import pytest
 import itertools
 from setuptools.github import tools
 
@@ -18,6 +19,22 @@ GIT_DUMPS = {
         "run_number": "20",
     },
 }
+
+
+def test_get_module_var(tmp_path):
+    with open(tmp_path / "in.txt", "w") as fp:
+        fp.write(
+            """
+# a test file
+A = 12
+B = 3+5
+C = "hello"
+# end of test
+"""
+        )
+    assert 12 == tools.get_module_var(tmp_path / "in.txt", "A")
+    assert "hello" == tools.get_module_var(tmp_path / "in.txt", "C")
+    pytest.raises(AssertionError, tools.get_module_var, tmp_path / "in.txt", "B")
 
 
 def test_hubversion():
@@ -42,7 +59,7 @@ def test_hubversion():
         assert expected == tools.hubversion(gdata, fallback)
 
 
-def test_initversion(tmp_path):
+def test_set_module_var(tmp_path):
     with open(tmp_path / "in.txt", "w") as fp:
         fp.write(
             """
@@ -53,7 +70,7 @@ __hash__ = "4.5.6"
 # end of test
 """
         )
-    version, txt = tools.initversion(tmp_path / "in.txt", "__version__", "6.7.8")
+    version, txt = tools.set_module_var(tmp_path / "in.txt", "__version__", "6.7.8")
     assert version == "1.2.3"
     assert (
         txt
@@ -65,21 +82,22 @@ __hash__ = "4.5.6"
 # end of test
 """
     )
-    version, txt = tools.initversion(tmp_path / "in.txt", "__hash__", "6.7.8")
+    version, txt = tools.set_module_var(tmp_path / "in.txt", "__hash__", "9.10.11")
     assert version == "4.5.6"
     assert (
         txt
         == """
 # a test file
-__version__ = "1.2.3"
-__hash__ = "6.7.8"
+__version__ = "6.7.8"
+__hash__ = "9.10.11"
 
 # end of test
 """
     )
+    return
 
-    tools.initversion(tmp_path / "in.txt", "__version__", "6.7.8", inplace=True)
-    tools.initversion(tmp_path / "in.txt", "__hash__", "8.9.10", inplace=True)
+    tools.set_module_var(tmp_path / "in.txt", "__version__", "6.7.8")
+    tools.set_module_var(tmp_path / "in.txt", "__hash__", "8.9.10")
 
     assert (
         (tmp_path / "in.txt").read_text()
@@ -94,12 +112,8 @@ __hash__ = "8.9.10"
 
 
 def test_update_version(tmp_path):
-    class M:
-        def __init__(self, **kwargs):
-            self.__dict__.update(kwargs)
-
-    def writeinit():
-        with open(tmp_path / "in.txt", "w") as fp:
+    def writeinit(initfile):
+        with open(initfile, "w") as fp:
             fp.write(
                 """
 # a test file
@@ -110,12 +124,14 @@ __hash__ = "4.5.6"
 """
             )
 
-    writeinit()
-    assert not tools.update_version(None, None)
-    module = M(__file__=tmp_path / "in.txt", __version__="1.2.3")
-    tools.update_version(GIT_DUMPS["master"], module)
+    initfile = tmp_path / "in.txt"
+    writeinit(initfile)
+
+    assert "1.2.3" == tools.update_version(initfile)
+
+    tools.update_version(initfile, GIT_DUMPS["master"])
     assert (
-        (tmp_path / "in.txt").read_text()
+        initfile.read_text()
         == """
 # a test file
 __version__ = "1.2.3"
@@ -125,10 +141,10 @@ __hash__ = "2169f90c"
 """
     )
 
-    writeinit()
-    tools.update_version(GIT_DUMPS["beta"], module)
+    writeinit(initfile)
+    tools.update_version(initfile, GIT_DUMPS["beta"])
     assert (
-        (tmp_path / "in.txt").read_text()
+        initfile.read_text()
         == """
 # a test file
 __version__ = "0.0.4b8"
@@ -138,10 +154,10 @@ __hash__ = "2169f90c22e"
 """
     )
 
-    writeinit()
-    tools.update_version(GIT_DUMPS["release"], module)
+    writeinit(initfile)
+    tools.update_version(initfile, GIT_DUMPS["release"])
     assert (
-        (tmp_path / "in.txt").read_text()
+        initfile.read_text()
         == """
 # a test file
 __version__ = "0.0.3"
