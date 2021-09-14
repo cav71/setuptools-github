@@ -1,4 +1,6 @@
 import re
+import json
+import pathlib
 
 
 def hubversion(gdata, fallback):
@@ -48,3 +50,16 @@ def initversion(initfile, var, value, inplace=None):
         with initfile.open("w") as fp:
             fp.write(txt)
     return fixed, txt
+
+
+def update_version(github_dump, module):
+    if not github_dump:
+        return
+    gdata = json.loads(github_dump) if isinstance(github_dump, str) else github_dump
+
+    version, thehash = hubversion(gdata, module.__version__)
+
+    path = pathlib.Path(module.__file__)
+    initversion(path, "__version__", version, inplace=True)
+    initversion(path, "__hash__", thehash, inplace=True)
+    return version
