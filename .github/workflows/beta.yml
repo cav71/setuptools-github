@@ -81,7 +81,7 @@ jobs:
           # PYTHONPATH: src
           GITHUB_DUMP: ${{ toJson(github) }}
         run: |
-          python -m build
+          python -m build --no-isolation,
 
       - name: Publish packages
         shell: bash
