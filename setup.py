@@ -8,7 +8,7 @@ from setuptools import setup, find_namespace_packages
 
 def getversion(initfile):
     expr = re.compile("^__version__\\s*=\\s*['\\\"](?P<value>[^\\\"']+)['\\\"]")
-    with initfile.open() as fp:
+    with open(initfile) as fp:
         for line in fp:
             match = expr.search(line)
             if match:
