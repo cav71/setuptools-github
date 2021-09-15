@@ -39,6 +39,7 @@ jobs:
 
       - name: Pyblish package to pypi
         env:
+	  # need to disable this, because it is a special package
           # PYTHONPATH: src
           GITHUB_DUMP: ${{ toJson(github) }}
         run: |
