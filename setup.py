@@ -8,11 +8,11 @@ from setuptools import setup, find_namespace_packages
 
 def getversion(initfile):
     expr = re.compile("^__version__\\s*=\\s*['\\\"](?P<value>[^\\\"']+)['\\\"]")
-    input_lines = initfile.read_text().split("\n")
-    for line in reversed(input_lines):
-        match = expr.search(line)
-        if match:
-            return match.group("value")
+    with initfile.open() as fp:
+        for line in fp:
+            match = expr.search(line)
+            if match:
+                return match.group("value")
 
 
 def hubversion(gdata, fallback):
