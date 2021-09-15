@@ -83,12 +83,12 @@ jobs:
         run: |
           python -m build
 
-      - name: Publish packages
-        shell: bash
-        env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: |
-          twine upload --skip-existing --non-interactive dist/*
+      # - name: Publish packages
+      #   shell: bash
+      #   env:
+      #     TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+      #     TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      #   run: |
+      #     twine upload --skip-existing --non-interactive dist/*
   
 
