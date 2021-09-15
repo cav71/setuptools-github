@@ -1,7 +1,7 @@
 import re
 import json
 
-# import os
+import os
 import pathlib
 
 from setuptools import setup, find_namespace_packages
@@ -68,8 +68,7 @@ def update_version(data, path, fallback):
 
 
 initfile = pathlib.Path(__file__).parent / "src/setuptools/github/__init__.py"
-version = getversion(initfile)
-# update_version(os.getenv("GITHUB_DUMP"), initfile, getversion(initfile))
+version = update_version(os.getenv("GITHUB_DUMP"), initfile, getversion(initfile))
 
 packages = find_namespace_packages(where="src")
 packages.remove("setuptools")
