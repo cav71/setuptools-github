@@ -23,7 +23,11 @@ This extends setuptools with method to create beta and releases for projects.
 
 Features
 --------
-TBD
+Usage in setup.py:
+```python
+initfile = pathlib.Path(__file__).parent / "your_package/__init__.py"
+version = tools.update_version(initfile, os.getenv("GITHUB_DUMP"))
+```
 
 
 Requirements

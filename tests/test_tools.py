@@ -60,6 +60,30 @@ def test_hubversion():
 
 
 def test_set_module_var(tmp_path):
+
+    with open(tmp_path / "in.txt", "w") as fp:
+        fp.write(
+            """
+# a test file
+__version__ = ""
+__hash__ = "4.5.6"
+
+# end of test
+"""
+        )
+    version, txt = tools.set_module_var(tmp_path / "in.txt", "__version__", "6.7.8")
+    assert not version
+    assert (
+        txt
+        == """
+# a test file
+__version__ = "6.7.8"
+__hash__ = "4.5.6"
+
+# end of test
+"""
+    )
+
     with open(tmp_path / "in.txt", "w") as fp:
         fp.write(
             """

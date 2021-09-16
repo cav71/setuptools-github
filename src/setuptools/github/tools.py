@@ -49,7 +49,7 @@ def get_module_var(
 def set_module_var(initfile: Union[str, Path], var: str, value: Any) -> Tuple[Any, str]:
     "replace in initfile var value"
     # module level var
-    expr = re.compile(f"^{var}\\s*=\\s*['\\\"](?P<value>[^\\\"']+)['\\\"]")
+    expr = re.compile(f"^{var}\\s*=\\s*['\\\"](?P<value>[^\\\"']*)['\\\"]")
     fixed = None
     lines = []
     input_lines = Path(initfile).read_text().split("\n")
@@ -113,4 +113,4 @@ def update_version(
     version, thehash = hubversion(gdata, get_module_var(path, "__version__"))
     set_module_var(path, "__version__", version)
     set_module_var(path, "__hash__", thehash)
-    return version, thehash
+    return version
