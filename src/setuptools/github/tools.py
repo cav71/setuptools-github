@@ -101,9 +101,7 @@ def hubversion(gdata, fallback: str) -> Tuple[str, str]:
     raise RuntimeError("unhandled github ref", gdata)
 
 
-def update_version(
-    initfile: Union[str, Path], github_dump: Any = None
-) -> Tuple[str, str]:
+def update_version(initfile: Union[str, Path], github_dump: Any = None) -> str:
     path = Path(initfile)
 
     if not github_dump:
