@@ -1,6 +1,6 @@
 import pytest
 import itertools
-from setuptools.github import tools
+from setuptools_github import tools
 
 GIT_DUMPS = {
     "beta": {
