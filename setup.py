@@ -67,18 +67,17 @@ def update_version(data, path, fallback):
     return version
 
 
-initfile = pathlib.Path(__file__).parent / "src/setuptools/github/__init__.py"
+initfile = pathlib.Path(__file__).parent / "src/setuptools_github/__init__.py"
 version = update_version(os.getenv("GITHUB_DUMP"), initfile, getversion(initfile))
 
 packages = find_namespace_packages(where="src")
-packages.remove("setuptools")
 
 setup(
     name="setuptools-github",
     version=version,
     url="https://github.com/cav71/setuptools-github",
     packages=packages,
-    package_dir={"setuptools.github": "src/setuptools/github"},
+    package_dir={"setuptools_github": "src/setuptools_github"},
     description="supports github releases",
     long_description=pathlib.Path("README.rst").read_text(),
     long_description_content_type="text/x-rst",
