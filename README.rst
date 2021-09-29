@@ -20,14 +20,26 @@ This extends setuptools with method to create beta and releases for projects.
    :target: https://github.com/psf/black
    :alt: Black
 
+Introduction
+------------
+
+The setuptools_github support a simple but reliable way to maintain 
+beta and release branches of a project.
+
+The main model is rather simple, all the code gets developed on the **master** branch.
+
+A branch (named **beta/N.M.O**) maintains all the beta releases for a particular release: each
+one will have a version N.M.Ob<build-no>.
+Finally tagging the code as **release/N.M.O**, will formalize the "release" for N.M.O.
+
 
 Features
 --------
-Usage in setup.py:
-```python
-initfile = pathlib.Path(__file__).parent / "your_package/__init__.py"
-version = tools.update_version(initfile, os.getenv("GITHUB_DUMP"))
-```
+Usage in setup.py::
+
+   from setuptools_github import tools
+   initfile = pathlib.Path(__file__).parent / "your_package/__init__.py"
+   version = tools.update_version(initfile, os.getenv("GITHUB_DUMP"))
 
 
 Requirements
