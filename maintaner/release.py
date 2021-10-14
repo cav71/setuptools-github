@@ -47,7 +47,7 @@ def newversion(version, mode):
 @click.argument(
     "mode", type=click.Choice(["micro", "minor", "major"], case_sensitive=False)
 )
-@click.argument("initfile")
+@click.argument("initfile", metavar="__init__.py")
 @click.option("-f", "--force", is_flag=True)
 @click.option("-n", "--dry-run", "dryrun", is_flag=True)
 @click.option(
