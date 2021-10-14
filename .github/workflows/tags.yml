@@ -37,7 +37,7 @@ jobs:
             pip install setuptools build wheel twine
             pip install -r tests/requirements.txt
 
-      - name: Pyblish package to pypi
+      - name: Build wheel and sdist packages
         env:
           # don't need this as it is a special package
           # PYTHONPATH: src
@@ -45,7 +45,7 @@ jobs:
         run: |
           python -m build
 
-      - name: Publish packages
+      - name: Publish packages to pypi
         shell: bash
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}

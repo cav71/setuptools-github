@@ -76,15 +76,16 @@ jobs:
         # Use always() to always run this step to publish test results when there are test failures
         if: always()
 
-      - name: Pyblish package to pypi
+      - name: Build wheel and sdist packages
         env:
           # don't need this as it is a special package
           # PYTHONPATH: src
           GITHUB_DUMP: ${{ toJson(github) }}
         run: |
+          python -m build -s
           python -m build
 
-      - name: Publish packages
+      - name: Publish packages to pypi
         shell: bash
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
