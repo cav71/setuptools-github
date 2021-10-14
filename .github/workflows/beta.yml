@@ -82,7 +82,6 @@ jobs:
           # PYTHONPATH: src
           GITHUB_DUMP: ${{ toJson(github) }}
         run: |
-          python -m build -s
           python -m build
 
       - name: Publish packages to pypi
