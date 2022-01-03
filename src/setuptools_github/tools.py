@@ -147,7 +147,7 @@ def hubversion(gdata: Any, fallback: str) -> Tuple[str, str]:
 
 def update_version(
     initfile: Union[str, Path], github_dump: Optional[str] = None
-) -> str:
+) -> Optional[str]:
     """extracts version information from github_dump and updates initfile in-place
 
     Args:
