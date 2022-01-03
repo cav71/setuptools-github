@@ -20,6 +20,11 @@ This extends setuptools with method to create beta and releases for projects.
    :target: https://github.com/psf/black
    :alt: Black
 
+.. image:: https://codecov.io/gh/cav71/setuptools-github/branch/master/graph/badge.svg?token=SIUMZ7MT5T
+   :target: https://codecov.io/gh/cav71/setuptools-github
+   :alt: Coverage
+
+
 Introduction
 ------------
 
