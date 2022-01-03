@@ -146,6 +146,8 @@ def run(mode, initfile, workdir, force, dryrun, error):
         ref = repo.lookup_reference(repo.lookup_branch(newbranch).name)
         repo.checkout(ref)
 
+    return newbranch
+
 
 def main():
     return run(**parse_args())
