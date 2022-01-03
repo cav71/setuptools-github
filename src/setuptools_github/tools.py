@@ -47,7 +47,17 @@ def get_module_var(
 
 
 def set_module_var(initfile: Union[str, Path], var: str, value: Any) -> Tuple[Any, str]:
-    "replace in initfile var value"
+    """replace var in initfile with value
+
+    Args:
+        initfile (str,Path): init file containing var
+        var (str): the variable to replace/extract
+        value (None or Any): if not None replace var in initfile,
+                                otherwise it will extract var
+
+    Returns:
+        (str, str) the previous var value, the new text
+    """
     # module level var
     expr = re.compile(f"^{var}\\s*=\\s*['\\\"](?P<value>[^\\\"']*)['\\\"]")
     fixed = None
@@ -66,8 +76,9 @@ def set_module_var(initfile: Union[str, Path], var: str, value: Any) -> Tuple[An
         lines.append(line)
     txt = "\n".join(reversed(lines))
 
-    with Path(initfile).open("w") as fp:
-        fp.write(txt)
+    if value is not None:
+        with Path(initfile).open("w") as fp:
+            fp.write(txt)
     return fixed, txt
 
 
