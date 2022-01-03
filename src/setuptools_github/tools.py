@@ -3,13 +3,40 @@ import ast
 import json
 
 from pathlib import Path
-from typing import Any, Union, Tuple
+from typing import Any, Union, Tuple, Optional
+
+
+class GithubError(Exception):
+    pass
+
+
+class MissingVariable(GithubError):
+    pass
+
+
+class InvalidGithubReference(GithubError):
+    pass
 
 
 def get_module_var(
-    initfile: Union[Path, str], key: str = "__version__", abort=True
-) -> Any:
-    "extracts from initfile the module level <key> variable"
+    path: Union[Path, str], var: str = "__version__", abort=True
+) -> Optional[str]:
+    """extracts from <filename> the module level <var> variable
+
+    Args:
+        path (str,Path): python module file to parse
+        var (str): module level variable name to extract
+        abort (bool): raise MissingVariable if var is not present
+
+    Returns:
+        None or str: the variable value if found or None
+
+    Raises:
+        MissingVariable: if the var is not found and abort is True
+
+    Notes:
+        this uses ast to parse path, so it doesn't load the module
+    """
 
     class V(ast.NodeVisitor):
         def __init__(self, keys):
@@ -38,31 +65,30 @@ def get_module_var(
                     self.result[target.id] = value
             return self.generic_visit(node)
 
-    tree = ast.parse(Path(initfile).read_text())
-    v = V({key})
+    tree = ast.parse(Path(path).read_text())
+    v = V({var})
     v.visit(tree)
-    if key not in v.result and abort:
-        raise RuntimeError(f"cannot find {key} in {initfile}")
-    return v.result.get(key, None)
+    if var not in v.result and abort:
+        raise MissingVariable(f"cannot find {var} in {path}", path, var)
+    return v.result.get(var, None)
 
 
-def set_module_var(initfile: Union[str, Path], var: str, value: Any) -> Tuple[Any, str]:
-    """replace var in initfile with value
+def set_module_var(path: Union[str, Path], var: str, value: Any) -> Tuple[Any, str]:
+    """replace var in path with value
 
     Args:
-        initfile (str,Path): init file containing var
-        var (str): the variable to replace/extract
-        value (None or Any): if not None replace var in initfile,
-                                otherwise it will extract var
+        path (str,Path): python module file to parse
+        var (str): module level variable name to extract
+        value (None or Any): if not None replace var in initfile
 
     Returns:
-        (str, str) the previous var value, the new text
+        (str, str) the (<previous-var-value|None>, <the new text>)
     """
     # module level var
     expr = re.compile(f"^{var}\\s*=\\s*['\\\"](?P<value>[^\\\"']*)['\\\"]")
     fixed = None
     lines = []
-    input_lines = Path(initfile).read_text().split("\n")
+    input_lines = Path(path).read_text().split("\n")
     for line in reversed(input_lines):
         if fixed:
             lines.append(line)
@@ -76,14 +102,21 @@ def set_module_var(initfile: Union[str, Path], var: str, value: Any) -> Tuple[An
         lines.append(line)
     txt = "\n".join(reversed(lines))
 
-    if value is not None:
-        with Path(initfile).open("w") as fp:
-            fp.write(txt)
+    with Path(path).open("w") as fp:
+        fp.write(txt)
     return fixed, txt
 
 
-def hubversion(gdata, fallback: str) -> Tuple[str, str]:
-    "extracts a (version, shasum) from a GITHUB_DUMP variable"
+def hubversion(gdata: Any, fallback: str) -> Tuple[str, str]:
+    """extracts a (version, shasum) from a GITHUB_DUMP variable
+
+    Args:
+        gdata: json dictionary from GITHUB_DUMP
+        fallback: if a version is not defined in gdata uses fallback
+
+    Returns:
+        (str, str): <update-version>, <shasum>
+    """
 
     def validate(txt):
         return ".".join(str(int(v)) for v in txt.split("."))
@@ -109,10 +142,22 @@ def hubversion(gdata, fallback: str) -> Tuple[str, str]:
         version = validate(ref.rpartition("/")[2])
         return (f"{version}", shasum)
 
-    raise RuntimeError("unhandled github ref", gdata)
+    raise InvalidGithubReference("unhandled github ref", gdata)
 
 
-def update_version(initfile: Union[str, Path], github_dump: Any = None) -> str:
+def update_version(
+    initfile: Union[str, Path], github_dump: Optional[str] = None
+) -> str:
+    """extracts version information from github_dump and updates initfile in-place
+
+    Args:
+        initfile (str, Path): path to the __init__.py file with a __version__ variable
+        github_dump (str): the os.getenv("GITHUB_DUMP") value
+
+    Returns:
+        str: the new version for the package
+    """
+
     path = Path(initfile)
 
     if not github_dump:

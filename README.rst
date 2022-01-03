@@ -2,8 +2,6 @@
 setuptools-github
 =================
 
-This extends setuptools with method to create beta and releases for projects.
-
 .. image:: https://img.shields.io/pypi/v/click-plus.svg
    :target: https://pypi.org/project/click-plus
    :alt: PyPI version
@@ -23,6 +21,18 @@ This extends setuptools with method to create beta and releases for projects.
 .. image:: https://codecov.io/gh/cav71/setuptools-github/branch/master/graph/badge.svg?token=SIUMZ7MT5T
    :target: https://codecov.io/gh/cav71/setuptools-github
    :alt: Coverage
+
+
+Github Actions define a GITHUB_DUMP environmental variable during build: this package parses it and
+it uses to create a "version" value from it depending on the branch name::
+
+    For a package foobar on a beta/0.0.1 branch
+        where __init__.py file contains __version__ = "0.0.1"
+
+    setuptools_github.tools.update_version(initfile, os.getenv("GITHUB_DUMP"))
+       returns -> 0.0.1.b<N> (N is the ever increasing build number)
+
+**Version** can be used in the setup.py script to generate packages as foobar-0.0.0.b<N> that are semantically ordered.
 
 
 Introduction
@@ -59,6 +69,10 @@ Installation
 You can install ``setuptools-github`` via `pip`_ from `PyPI`_::
 
     $ pip install setuptools-github
+
+Or conda::
+
+    $ conda -c conda-forge setuptools-github
 
 
 .. _`pip`: https://pypi.org/project/pip/
