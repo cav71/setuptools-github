@@ -100,7 +100,7 @@ def parse_args(args=None):
     return options.__dict__
 
 
-def main(mode, initfile, workdir, force, dryrun, error):
+def run(mode, initfile, workdir, force, dryrun, error):
     workdir = workdir.resolve()
     log.debug("using working dir %s", workdir)
 
@@ -147,5 +147,9 @@ def main(mode, initfile, workdir, force, dryrun, error):
         repo.checkout(ref)
 
 
+def main():
+    return run(**parse_args())
+
+
 if __name__ == "__main__":
-    main(**parse_args())
+    main()

@@ -82,6 +82,11 @@ setup(
     long_description=pathlib.Path("README.rst").read_text(),
     long_description_content_type="text/x-rst",
     install_requires=["setuptools"],
+    entry_points={
+        "console_scripts": [
+            "setuptools-github-start-release=setuptools_github.start_release:main"
+        ],
+    },
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Console",
