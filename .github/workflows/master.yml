@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.6", "3.7", "3.8", "3.9",]
+        python-version: ["3.7", "3.8", "3.9", "3.10",]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -36,7 +36,7 @@ jobs:
             pip install setuptools build wheel twine
             pip install -r tests/requirements.txt
 
-      - name: Lint with flake8
+      - name: Static tests (flake8)
         shell: bash
         env:
           PYTHONPATH: src
@@ -46,19 +46,7 @@ jobs:
             # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
             flake8 src --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Test and coverage
-        shell: bash
-        env:
-          PYTHONPATH: src
-          OUTDIR: build/qa-${{ matrix.python-version }}
-        run: |
-          py.test \
-              --cov=setuptools.github \
-              --cov-report=html:$OUTDIR/coverage \
-              --junitxml=$OUTDIR/junit/junit.xml --html=$OUTDIR/junit/junit.html --self-contained-html \
-            tests
-
-      - name: Static check
+      - name: Static tests (mypy)
         shell: bash
         env:
           PYTHONPATH: src
@@ -66,6 +54,24 @@ jobs:
         run: |
           mypy src \
             --no-incremental --xslt-html-report $OUTDIR/mypy
+
+      - name: Runtime tests (unitest, coverage etc.)
+        shell: bash
+        env:
+          PYTHONPATH: src
+          OUTDIR: build/qa-${{ matrix.python-version }}
+        run: |
+          py.test \
+              --cov=setuptools_github \
+              --cov-report=html:$OUTDIR/coverage --cov-report=xml:$OUTDIR/coverage.xml \
+              --junitxml=$OUTDIR/junit/junit.xml --html=$OUTDIR/junit/junit.html --self-contained-html \
+            tests
+
+      - name: "Upload coverage to Codecov"
+        uses: codecov/codecov-action@v2
+        with:
+          fail_ci_if_error: true
+          files: build/qa-${{ matrix.python-version }}/coverage.xml
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v2
