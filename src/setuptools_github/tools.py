@@ -107,7 +107,7 @@ def set_module_var(path: Union[str, Path], var: str, value: Any) -> Tuple[Any, s
     return fixed, txt
 
 
-def hubversion(gdata: Any, fallback: str) -> Tuple[str, str]:
+def hubversion(gdata: Any, fallback: Optional[str]) -> Tuple[str, str]:
     """extracts a (version, shasum) from a GITHUB_DUMP variable
 
     Args:
