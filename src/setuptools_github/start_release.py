@@ -26,7 +26,9 @@ def newversion(version, mode):
 def repo_checks(repo, error, dryrun, force, curver, newbranch):
     # check repo has a single remote
     remotes = {remote.name for remote in repo.remotes}
-    if len(remotes) != 1:
+    if not remotes:
+        error("no remotes defined")
+    if len(remotes) > 1:
         error(f"multiple remotes defined: {', '.join(remotes)}")
     remote = remotes.pop()
 
@@ -80,6 +82,7 @@ def parse_args(args=None):
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("-f", "--force", action="store_true")
     parser.add_argument("-n", "--dry-run", dest="dryrun", action="store_true")
+    parser.add_argument("--no-checks", action="store_true")
 
     parser.add_argument(
         "-w",
@@ -89,18 +92,19 @@ def parse_args(args=None):
         type=pathlib.Path,
     )
     parser.add_argument("mode", choices=["micro", "minor", "major"])
-    parser.add_argument("initfile", metavar="__init__.py")
+    parser.add_argument("initfile", metavar="__init__.py", type=pathlib.Path)
 
     options = parser.parse_args(args)
 
+    options.checks = not options.no_checks
     options.error = parser.error
     logging.basicConfig(level=logging.DEBUG if options.verbose else logging.INFO)
-    for d in ["verbose"]:
+    for d in ["verbose", "no_checks"]:
         delattr(options, d)
     return options.__dict__
 
 
-def run(mode, initfile, workdir, force, dryrun, error):
+def run(mode, initfile, workdir, force, dryrun, error, checks):
     workdir = workdir.resolve()
     log.debug("using working dir %s", workdir)
 
@@ -119,7 +123,8 @@ def run(mode, initfile, workdir, force, dryrun, error):
     repo = pygit2.Repository(workdir)
 
     # various checks
-    repo_checks(repo, error, dryrun, force, curver, newbranch)
+    if checks:
+        repo_checks(repo, error, dryrun, force, curver, newbranch)
 
     # modify the __init__
     log.info("updating init file %s%s", initfile, " (skip)" if dryrun else "")
@@ -133,7 +138,7 @@ def run(mode, initfile, workdir, force, dryrun, error):
         author = repo.default_signature
         commiter = repo.default_signature
         parent = repo.revparse_single(repo.head.shorthand).hex
-        repo.index.add(initfile)
+        repo.index.add(initfile.relative_to(workdir))
         repo.index.write()
         tree = repo.index.write_tree()
         oid = repo.create_commit(refname, author, commiter, msg, tree, [parent])
