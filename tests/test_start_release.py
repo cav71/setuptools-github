@@ -21,6 +21,9 @@ def test_end2end():
         pygit2.init_repository(dst)
         repo = pygit2.Repository(dst)
 
+        repo.config["user.name"] = "myusername"
+        repo.config["user.email"] = "myemail"
+
         (dst / "src").mkdir(parents=True, exist_ok=True)
         (dst / "src" / "__init__.py").write_text(
             """
