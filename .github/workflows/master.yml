@@ -62,7 +62,7 @@ jobs:
           OUTDIR: build/qa-${{ matrix.python-version }}
         run: |
           py.test \
-              --cov=setuptools_github.tools \
+              --cov=setuptools_github \
               --cov-report=html:$OUTDIR/coverage --cov-report=xml:$OUTDIR/coverage.xml \
               --junitxml=$OUTDIR/junit/junit.xml --html=$OUTDIR/junit/junit.html --self-contained-html \
             tests
