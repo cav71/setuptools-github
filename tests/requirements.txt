@@ -5,6 +5,7 @@ lxml
 mock
 mypy
 pre-commit
+pygit2
 pytest
 pytest-html
 pytest-cov
