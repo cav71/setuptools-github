@@ -55,13 +55,19 @@ Usage in setup.py::
    from setuptools_github import tools
    initfile = pathlib.Path(__file__).parent / "your_package/__init__.py"
    version = tools.update_version(initfile, os.getenv("GITHUB_DUMP"))
+   
+   setup(
+        name="a-name",
+        version=version,
+        ...
 
 
 Requirements
 ------------
 
-* ``Python`` >= 3.6.
+* ``Python`` >= 3.7.
 * ``setuptools``
+
 
 Installation
 ------------
@@ -72,7 +78,7 @@ You can install ``setuptools-github`` via `pip`_ from `PyPI`_::
 
 Or conda::
 
-    $ conda -c conda-forge setuptools-github
+    $ conda install -c conda-forge setuptools-github
 
 
 .. _`pip`: https://pypi.org/project/pip/
