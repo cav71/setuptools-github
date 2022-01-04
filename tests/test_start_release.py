@@ -12,11 +12,7 @@ def test_newversion():
     assert "2.0.0" == sr.newversion("1.2.3", "major")
 
 
-def test_end2end():
-    from pathlib import Path
-
-    tmp_path = Path("out").absolute()
-
+def test_end2end(tmp_path):
     def create_new_project(dst):
         pygit2.init_repository(dst)
         repo = pygit2.Repository(dst)
