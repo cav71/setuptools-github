@@ -138,7 +138,8 @@ def run(mode, initfile, workdir, force, dryrun, error, checks):
         author = repo.default_signature
         commiter = repo.default_signature
         parent = repo.revparse_single(repo.head.shorthand).hex
-        repo.index.add(str(initfile.relative_to(workdir)).replace("\\", "/"))
+        relpath = initfile.absolute().relative_to(workdir)
+        repo.index.add(str(relpath).replace("\\", "/"))
         repo.index.write()
         tree = repo.index.write_tree()
         oid = repo.create_commit(refname, author, commiter, msg, tree, [parent])
