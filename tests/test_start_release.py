@@ -1,21 +1,20 @@
+import contextlib
 import pygit2  # type: ignore
+import pytest
 
 from setuptools_github import start_release as sr
 
 
-def test_newversion():
-    assert "0.0.2" == sr.newversion("0.0.1", "micro")
-    assert "0.0.3" == sr.newversion("0.0.2", "micro")
+class Project:
+    def __init__(self, dst, repo=None):
+        self.dst = dst
+        self.repo = repo
 
-    assert "0.1.0" == sr.newversion("0.0.2", "minor")
+    def create(self, version, dst=None):
+        dst = dst or self.dst
 
-    assert "2.0.0" == sr.newversion("1.2.3", "major")
-
-
-def test_end2end(tmp_path):
-    def create_new_project(dst):
         pygit2.init_repository(dst)
-        repo = pygit2.Repository(dst)
+        self.repo = repo = pygit2.Repository(dst)
 
         repo.config["user.name"] = "myusername"
         repo.config["user.email"] = "myemail"
@@ -32,17 +31,73 @@ __version__ = "0.0.3"
 
         sig = pygit2.Signature("no-body", "a.b.c@example.com")
         repo.create_commit("HEAD", sig, sig, "hello", tree, [])
+        return self
 
-        return repo
+    @property
+    def version(self):
+        return (
+            (self.dst / "src/__init__.py")
+            .read_text()
+            .partition("=")[2]
+            .strip()
+            .strip('"')
+        )
 
-    repo = create_new_project(tmp_path / "project")
+    @property
+    def branch(self):
+        return self.repo.head.shorthand
 
-    assert "master" == repo.head.shorthand
-    assert (
-        '__version__ = "0.0.3"'
-        == (tmp_path / "project/src/__init__.py").read_text().strip()
-    )
+    def checkout(self, name):
+        cur = self.branch
+        ref = self.repo.lookup_reference(self.repo.lookup_branch(name).name)
+        self.repo.checkout(ref)
+        return cur
 
+    @contextlib.contextmanager
+    def in_branch(self, name):
+        original = self.checkout(name)
+        yield original
+        self.checkout(original)
+
+
+def test_newversion():
+    assert "0.0.2" == sr.newversion("0.0.1", "micro")
+    assert "0.0.3" == sr.newversion("0.0.2", "micro")
+
+    assert "0.1.0" == sr.newversion("0.0.2", "minor")
+
+    assert "2.0.0" == sr.newversion("1.2.3", "major")
+
+
+def test_extract_beta_branches():
+    branches = [
+        "master",
+        "main",
+        "beta/0.0.0",
+        "foobar/beta/0.0.1",
+        "foobar/beta/0.0.0.2",
+        "beta/gamma/0.0",
+    ]
+
+    assert sr.extract_beta_branches(branches) == {
+        "beta/0.0.0",
+        "foobar/beta/0.0.1",
+        "foobar/beta/0.0.0.2",
+    }
+    assert sr.extract_beta_branches(branches, remote="foobar") == {
+        "foobar/beta/0.0.1",
+        "foobar/beta/0.0.0.2",
+    }
+
+
+def test_end2end(tmp_path, capsys):
+    project = Project(tmp_path / "project").create("0.0.3")
+    assert project.branch == "master"
+    assert project.version == "0.0.3"
+
+    # create the first beta branch:
+    #  we checkout the beta/0.0.3 branch
+    #  the version stays the same as master
     args = [
         "-w",
         tmp_path / "project",
@@ -52,16 +107,23 @@ __version__ = "0.0.3"
     ]
     kwargs = sr.parse_args([str(a) for a in args])
     sr.run(**kwargs)
+    assert project.branch == "beta/0.0.3"
+    assert project.version == "0.0.3"
 
-    assert "beta/0.1.0" == repo.head.shorthand
-    assert (
-        '__version__ = "0.1.0"'
-        == (tmp_path / "project/src/__init__.py").read_text().strip()
-    )
+    # make sure we cannot re-apply in a non-master branch
+    pytest.raises(SystemExit, sr.run, **kwargs)
 
-    repo.checkout("refs/heads/master")
-    assert "master" == repo.head.shorthand
-    assert (
-        '__version__ = "0.1.0"'
-        == (tmp_path / "project/src/__init__.py").read_text().strip()
-    )
+    # second round to create a beta branch
+    #  we update the __init__.py to 0.1.0 (minor) in master
+    #  we checkout the beta/0.0.4 branch
+    project.checkout("master")
+    assert project.branch == "master"
+    assert project.version == "0.0.3"
+
+    sr.run(**kwargs)
+    assert project.branch == "beta/0.1.0"
+    assert project.version == "0.1.0"
+
+    project.checkout("master")
+    assert project.branch == "master"
+    assert project.version == "0.1.0"
