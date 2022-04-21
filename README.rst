@@ -38,7 +38,7 @@ it uses to create a "version" value from it depending on the branch name::
 Introduction
 ------------
 
-The setuptools_github support a simple but reliable way to maintain 
+The setuptools_github supports a simple but reliable way to maintain 
 beta and release branches of a project.
 
 The main model is rather simple, all the code gets developed on the **master** branch.
