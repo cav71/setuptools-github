@@ -1,4 +1,4 @@
-import pathlib
+# releaser module
 import logging
 import re
 
@@ -100,6 +100,7 @@ def repo_checks(repo, remote, error, dryrun, force, curver, mode):
 
 
 def parse_args(args=None):
+    from pathlib import Path
     from argparse import (
         ArgumentParser,
         ArgumentDefaultsHelpFormatter,
@@ -121,11 +122,11 @@ def parse_args(args=None):
         "-w",
         "--workdir",
         help="git working dir",
-        default=pathlib.Path("."),
-        type=pathlib.Path,
+        default=Path("."),
+        type=Path,
     )
     parser.add_argument("mode", choices=["micro", "minor", "major"])
-    parser.add_argument("initfile", metavar="__init__.py", type=pathlib.Path)
+    parser.add_argument("initfile", metavar="__init__.py", type=Path)
 
     options = parser.parse_args(args)
 
