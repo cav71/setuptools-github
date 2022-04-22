@@ -1,5 +1,5 @@
 click
-flake8
+flake8=3.9.1
 jinja2
 lxml
 mock
