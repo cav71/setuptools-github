@@ -5,7 +5,6 @@ on:
     tags:
       - release/*
 
-
 jobs:
   build:
     strategy:
@@ -39,18 +38,17 @@ jobs:
 
       - name: Build wheel and sdist packages
         env:
-          # don't need this as it is a special package
-          # PYTHONPATH: src
+          PYTHONPATH: .
           GITHUB_DUMP: ${{ toJson(github) }}
         run: |
           python -m build
 
-      - name: Publish packages to pypi
+      - name: Publish packages to pypi (release)
         shell: bash
         env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          TWINE_REPOSITORY: ${{ secrets.TWINE_REPOSITORY }}
+          TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
         run: |
           twine upload --skip-existing --non-interactive dist/*
   
-
