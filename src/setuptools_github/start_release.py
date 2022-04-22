@@ -1,4 +1,3 @@
-# releaser module
 import logging
 import re
 
