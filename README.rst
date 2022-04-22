@@ -34,7 +34,6 @@ it uses to create a "version" value from it depending on the branch name::
 
 **Version** can be used in the setup.py script to generate packages as foobar-0.0.0.b<N> that are semantically ordered.
 
-
 Introduction
 ------------
 
