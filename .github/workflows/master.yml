@@ -24,10 +24,10 @@ jobs:
           echo "github env:"
           echo "$GITHUB_DUMP"
 
-      - name: Set up Python interpreter [{{ '${{ matrix.python-version }}' }}]
+      - name: Set up Python interpreter [${{ matrix.python-version }}]
         uses: actions/setup-python@v1
         with:
-          python-version: {{ '${{ matrix.python-version }}' }}
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         shell: bash
@@ -36,7 +36,7 @@ jobs:
             pip install setuptools build wheel twine
             pip install -r tests/requirements.txt
 
-      - name: Static tests (flake8)
+      - name: Lint tests (flake8)
         shell: bash
         env:
           PYTHONPATH: src
@@ -50,7 +50,7 @@ jobs:
         shell: bash
         env:
           PYTHONPATH: src
-          OUTDIR: build/qa-{{ '${{ matrix.python-version }}' }}
+          OUTDIR: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
         run: |
           mypy src/setuptools_github \
             --no-incremental --xslt-html-report $OUTDIR/mypy
@@ -59,7 +59,7 @@ jobs:
         shell: bash
         env:
           PYTHONPATH: src
-          OUTDIR: build/qa-{{ '${{ matrix.python-version }}' }}
+          OUTDIR: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
         run: |
           py.test \
               --cov=setuptools_github \
@@ -67,17 +67,17 @@ jobs:
               --junitxml=$OUTDIR/junit/junit.xml --html=$OUTDIR/junit/junit.html --self-contained-html \
             tests
 
-      - name: "Upload coverage to Codecov"
-        uses: codecov/codecov-action@v2
-        with:
-          fail_ci_if_error: true
-          files: build/qa-{{ '${{ matrix.python-version }}' }}/coverage.xml
-
       - name: Upload pytest test results
         uses: actions/upload-artifact@v2
         with:
-          name: pytest-results-{{ '${{ matrix.python-version }}' }}
-          path: build/qa-{{ '${{ matrix.python-version }}' }}
+          name: pytest-results-${{ matrix.python-version }}-${{ matrix.os }}
+          path: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
         # Use always() to always run this step to publish test results when there are test failures
         if: always()
 
+      # CHANGEME un-comment to use codecov server
+      # - name: "Upload coverage to Codecov"
+      #   uses: codecov/codecov-action@v2
+      #   with:
+      #     fail_ci_if_error: true
+      #     files: build/qa-${{ matrix.python-version }}/coverage.xml
