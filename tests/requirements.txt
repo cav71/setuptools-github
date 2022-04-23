@@ -5,7 +5,8 @@ lxml
 mock
 mypy
 pre-commit
-pytest
-pytest-html
-pytest-cov
 pyfakefs
+pygit2
+pytest
+pytest-cov
+pytest-html
