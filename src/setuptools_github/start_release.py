@@ -43,9 +43,9 @@ def repo_checks(repo, remote, error, dryrun, force, curver, mode):
             f"multiple remotes defined: {', '.join(remotes)}"
         )
     if remote and remote not in remotes:
-        error(f"requested {remote=} but found {', '.join(remotes)}")
+        error(f"requested remote={remote} but found {', '.join(remotes)}")
         (log.error if dryrun else error)(
-            f"user select {remote=} but only found {', '.join(remotes)}"
+            f"user select remote={remote} but only found {', '.join(remotes)}"
         )
     remote = remote or (remotes or [None]).pop()
     log.debug("current remote '%s'", remote)
