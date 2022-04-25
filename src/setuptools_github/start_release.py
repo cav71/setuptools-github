@@ -3,7 +3,7 @@ import re
 
 import pygit2  # type: ignore
 
-from . import tools
+from setuptools_github import tools
 
 
 log = logging.getLogger(__name__)
