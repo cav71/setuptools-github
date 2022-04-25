@@ -23,19 +23,34 @@ setuptools-github
    :alt: Coverage
 
 
-Github Actions define a GITHUB_DUMP environmental variable during build: this package parses it and
-it uses to create a "version" value from it depending on the branch name::
+This package manages the __version__ and __hash__ variables in a __init__.py file in the github actions-driven builds.
 
-    For a package foobar on a beta/0.0.1 branch
-        where __init__.py file contains __version__ = "0.0.1"
+For each build in a specially named branch (eg. /beta/N.M.O) a wheel package will created with a __version__
+set to N.M.Ob<build-number> to respect the order in `pep440` and a __hash__ set to the git hash.
 
-    setuptools_github.tools.update_version(initfile, os.getenv("GITHUB_DUMP"))
-       returns -> 0.0.1.b<N> (N is the ever increasing build number)
+A script **setuptools-github-start-release** will help to start a beta release branch.
 
-**Version** can be used in the setup.py script to generate packages as foobar-0.0.0.b<N> that are semantically ordered.
+Setup
+-----
 
-Introduction
-------------
+The starting point is the master branch.
+
+First add into the setup.py::
+
+   from setuptools_github import tools
+   initfile = pathlib.Path(__file__).parent / "your_package/__init__.py"
+   version = tools.update_version(initfile, os.getenv("GITHUB_DUMP"))
+   
+   setup(
+        name="a-name",
+        version=version,
+        ...
+
+Then insert into your_package/__init__.py::
+
+    __version__ = "0.0.0"
+    __hash__ = ""
+    
 
 The setuptools_github supports a simple but reliable way to maintain 
 beta and release branches of a project.
@@ -82,3 +97,4 @@ Or conda::
 
 .. _`pip`: https://pypi.org/project/pip/
 .. _`PyPI`: https://pypi.org/project
+.. _`pep440`: https://peps.python.org/pep-0440
