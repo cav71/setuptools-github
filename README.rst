@@ -22,23 +22,33 @@ setuptools-github
    :target: https://codecov.io/gh/cav71/setuptools-github
    :alt: Coverage
 
+Intro
+-----
 
-This package manages the __version__ and __hash__ variables in a __init__.py file in the github actions-driven builds.
+**setuptools-github** is both a library and a script to support package deliveries using beta branches on github:
+in a simple model each (automated) commit on a beta/N.M.O branch will result in a package with a __version__
+of N.M.Ob<build-number> and a __hash__ corresponding to the commit.
 
-For each build in a specially named branch (eg. /beta/N.M.O) a wheel package will created with a __version__
-set to N.M.Ob<build-number> to respect the order in `pep440` and a __hash__ set to the git hash.
+Finally tagging the code with a release/N.M.O tag will result in a package of __version__ N.M.O and "close"
+the beta branch (this is the same sorting strategy used in `pep440`).
 
 A script **setuptools-github-start-release** will help to start a beta release branch.
+
 
 Setup
 -----
 
-The starting point is the master branch.
+We start from the master branch (or main, depending on the repository setting).
 
-First add into the setup.py::
+Initial steps (setup.py)
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+First add into the **setup.py** file the function handling the __version__/__hash__ variables::
 
    from setuptools_github import tools
    initfile = pathlib.Path(__file__).parent / "your_package/__init__.py"
+
+   # this will manage the __version__/__hash__ in initfile using the github envs
    version = tools.update_version(initfile, os.getenv("GITHUB_DUMP"))
    
    setup(
@@ -46,35 +56,36 @@ First add into the setup.py::
         version=version,
         ...
 
-Then insert into your_package/__init__.py::
+.. NOTE::
+   If the your_package/__init__.py is not present it will be created on the fly when setup.py is run.
 
-    __version__ = "0.0.0"
-    __hash__ = ""
-    
+Second update the **.github/workflows/{beta,master,release}.yml**
 
-The setuptools_github supports a simple but reliable way to maintain 
-beta and release branches of a project.
+Adds to the workflows yaml files the following::
 
-The main model is rather simple, all the code gets developed on the **master** branch.
+    - name: Build wheel package
+      env:
+        PYTHONPATH: .
+        GITHUB_DUMP: ${{ toJson(github) }}
+      run: |
+        python -m build
 
-A branch (named **beta/N.M.O**) maintains all the beta releases for a particular release: each
-one will have a version N.M.Ob<build-no>.
-Finally tagging the code as **release/N.M.O**, will formalize the "release" for N.M.O.
+This will set the environment variable GITHUB_DUMP to a json string from the action context.
 
+Release process
+~~~~~~~~~~~~~~~
 
-Features
---------
-Usage in setup.py::
+To begin a new branch from **master**::
 
-   from setuptools_github import tools
-   initfile = pathlib.Path(__file__).parent / "your_package/__init__.py"
-   version = tools.update_version(initfile, os.getenv("GITHUB_DUMP"))
-   
-   setup(
-        name="a-name",
-        version=version,
-        ...
+    setuptools-github-start-release micro src/your_package/__init__.py
 
+This will create a new branch beta/0.0.0 initially where your-package will build 0.0.0b1, 0.0.0b2 etc. wheels.
+
+Tagging beta/0.0.0 as release/0.0.0, will close the branch and you can restart a new branch::
+
+    setuptools-github-start-release micro src/your_package/__init__.py
+
+This will (1) bump the master __version__ to 0.0.1 (micro), and create a new beta/0.0.1 branch.
 
 Requirements
 ------------
