@@ -73,13 +73,16 @@ def get_module_var(
     return v.result.get(var, None)
 
 
-def set_module_var(path: Union[str, Path], var: str, value: Any) -> Tuple[Any, str]:
+def set_module_var(
+    path: Union[str, Path], var: str, value: Any, create: bool = True
+) -> Tuple[Any, str]:
     """replace var in path with value
 
     Args:
         path (str,Path): python module file to parse
         var (str): module level variable name to extract
         value (None or Any): if not None replace var in initfile
+        create (bool): create path if not present
 
     Returns:
         (str, str) the (<previous-var-value|None>, <the new text>)
@@ -88,7 +91,13 @@ def set_module_var(path: Union[str, Path], var: str, value: Any) -> Tuple[Any, s
     expr = re.compile(f"^{var}\\s*=\\s*['\\\"](?P<value>[^\\\"']*)['\\\"]")
     fixed = None
     lines = []
-    input_lines = Path(path).read_text().split("\n")
+
+    src = Path(path)
+    if not src.exists() and create:
+        src.parent.mkdir(parents=True, exist_ok=True)
+        src.touch()
+
+    input_lines = src.read_text().split("\n")
     for line in reversed(input_lines):
         if fixed:
             lines.append(line)
@@ -101,6 +110,10 @@ def set_module_var(path: Union[str, Path], var: str, value: Any) -> Tuple[Any, s
                 line = line[:x] + value + line[y:]
         lines.append(line)
     txt = "\n".join(reversed(lines))
+    if not fixed and create:
+        if txt and txt[-1] != "\n":
+            txt += "\n"
+        txt += f'{var} = "{value}"'
 
     with Path(path).open("w") as fp:
         fp.write(txt)
