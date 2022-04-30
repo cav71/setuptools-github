@@ -2,6 +2,7 @@ import sys
 import logging
 import functools
 import re
+from typing import List, Optional, Callable, Any
 
 import pygit2  # type: ignore
 
@@ -11,7 +12,9 @@ from setuptools_github import tools
 log = logging.getLogger(__name__)
 
 
-def indent(txt, pre=" " * 2):
+def indent(txt: str, pre: str = " " * 2) -> str:
+    "simple text indentation"
+
     from textwrap import dedent
 
     txt = dedent(txt)
@@ -24,7 +27,7 @@ def indent(txt, pre=" " * 2):
     return pre + txt.replace("\n", "\n" + pre) + last_eol
 
 
-def bump_version(version, mode):
+def bump_version(version: str, mode: str) -> str:
     """given a version string will bump accordying to mode
 
     Eg.
@@ -46,8 +49,18 @@ def bump_version(version, mode):
     return ".".join(str(v) for v in newver)
 
 
-def check_remotes(repo, dryrun=False, remote=None, error=None):
+def check_remotes(
+    repo: pygit2.Repository,
+    dryrun: bool = False,
+    remote: Optional[str] = None,
+    error: Optional[Callable[[str], Any]] = None,
+):
     "given a pygit2 Repo instance check it has a single remote"
+
+    if not error:
+
+        def error(msg):
+            raise RuntimeError(msg)
 
     # check repo has a single remote
     remotes = {remote.name for remote in repo.remotes}
@@ -65,7 +78,7 @@ def check_remotes(repo, dryrun=False, remote=None, error=None):
     return remote
 
 
-def extract_beta_branches(branches, remote=None):
+def extract_beta_branches(branches: List[str], remote: Optional[str] = None):
     result = set()
     for branch in branches:
         match = branch.partition("/")[0]
@@ -76,7 +89,15 @@ def extract_beta_branches(branches, remote=None):
     return result
 
 
-def repo_checks(repo, remote, error, dryrun, force, curver, mode):
+def repo_checks(
+    repo: pygit2.Repository,
+    remote: Optional[str],
+    error: Callable[[str], Any],
+    dryrun: bool,
+    force: bool,
+    curver: str,
+    mode: str,
+):
     # check we are on master
     current = repo.head.shorthand
     log.debug("current branch %s", current)
@@ -164,7 +185,13 @@ def parse_args(args=None):
         if explain:
             out.extend(indent(explain.rstrip()).split("\n"))
         print("\n".join(out), file=sys.stderr)
-        sys.exit(2)
+
+        class S(SystemExit):
+            pass
+
+        s = S(2)
+        s.out = "\n".join(out)
+        raise S(2)
 
     options.error = error
 
@@ -231,18 +258,77 @@ def beta(repo, curver, mode, initfile, workdir, force, dryrun, error, checks, re
 def release(
     repo, curver, mode, initfile, workdir, force, dryrun, error, checks, remote
 ):
-    remote = check_remotes(repo, dryrun, remote)
-    log.info("remote [%s]", remote)
+
+    # check we aren't regenerating a tag
+    regex = re.compile("^refs/tags/")
+    tags = [r for r in repo.references if regex.match(r)]
+    if f"refs/tags/release/{curver}" in tags:
+        error(f"there's already a {curver} tag refs/tags/release/{curver}")
+
+    local_branches = {
+        b.rpartition("/")[2]: b for b in repo.branches.local if b == f"beta/{curver}"
+    }
+    remote_branches = {
+        b.rpartition("/")[2]: b
+        for b in repo.branches.remote
+        if b.endswith(f"/beta/{curver}")
+    }
+
+    # 4 cases
+    #   1. curver is not either in local and remote
+    if curver not in (set(local_branches) | set(remote_branches)):
+        error(
+            f"ncurrent project has version {curver} but there aren't"
+            f" any beta/{curver} branch local or remote",
+            explain="""
+        Tried to create a release for {curver} but no beta/{curver} branch
+        has not beeing found.
+        """,
+        )
+    #   2. curver is in remote and local branches
+    elif curver in (set(local_branches) & set(remote_branches)):
+        # check the two branches are in sync or bail out
+        raise RuntimeError("NOT DONE YET")
+    #   3. curver is in remote only
+    elif curver not in local_branches:
+        # TODO create local branch from remote
+        raise RuntimeError("NOT DONE YET")
+        ref = repo.lookup_reference(repo.lookup_branch(remote_branches[curver]))
+        repo.checkout(ref)
+    #   4. curver is local only
+    elif curver not in remote_branches:
+        # check master is in sync with local branch (unless is --force)
+        ref = repo.lookup_reference(repo.lookup_branch(local_branches[curver]).name)
+        mref = repo.lookup_reference(repo.lookup_branch("master").name)
+        if not force and (ref.target != mref.target):
+            error(
+                f"local '{local_branches[curver]}' is not in sync with master",
+                explain="""
+            Either you need to pull master into '{local_branches[curver]}' or
+            (if it is ok) you can use the --force flag.:
+            """,
+            )
+    repo.checkout(ref)
+    repo.references.create(f"refs/tags/release/{curver}", ref.target)
 
 
 def run(mode, initfile, workdir, force, dryrun, error, checks, remote):
     workdir = workdir.resolve()
     log.debug("using working dir %s", workdir)
 
+    # get the Repository instance on workdir
+    repo = pygit2.Repository(workdir)
+
+    # we need an initfile
     if not initfile.exists():
         error(f"no file '{initfile}' found")
 
-    repo = pygit2.Repository(workdir)
+    # check we are on master
+    if repo.head.shorthand not in {"master", "main"}:
+        error(
+            "current branch is '{repo.head.shorthand}' but"
+            " this script runs on the 'master' branch"
+        )
 
     # check we have a single remote or use the remote passed in --remote flag
     remote = check_remotes(
@@ -261,7 +347,7 @@ def run(mode, initfile, workdir, force, dryrun, error, checks, remote):
 
     # get the current version from initfile
     curver = tools.get_module_var(initfile, "__version__", abort=False)
-    if curver:
+    if not curver:
         error(
             f"cannot find __version__ in {initfile}",
             explain="""
@@ -276,9 +362,5 @@ def run(mode, initfile, workdir, force, dryrun, error, checks, remote):
     )
 
 
-def main():
-    return run(**parse_args())
-
-
 if __name__ == "__main__":
-    main()
+    run(**parse_args())

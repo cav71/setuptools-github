@@ -98,21 +98,21 @@ def scripter(request, tmp_path_factory, datadir):
 @pytest.fixture(scope="function")
 def git_project_factory(tmp_path):
     class Project:
-        def __init__(self, dst, repo=None):
-            self.dst = dst
+        def __init__(self, workdir, repo=None):
+            self.workdir = workdir
             self.repo = repo
 
         @property
         def initfile(self):
-            return self.dst / "src" / "__init__.py"
+            return self.workdir / "src" / "__init__.py"
 
-        def create(self, version, dst=None):
+        def create(self, version, workdir=None):
             from pygit2 import init_repository, Repository, Signature
 
-            self.dst = dst or self.dst
+            self.workdir = workdir or self.workdir
 
-            init_repository(self.dst)
-            self.repo = repo = Repository(self.dst)
+            init_repository(self.workdir)
+            self.repo = repo = Repository(self.workdir)
 
             repo.config["user.name"] = "myusername"
             repo.config["user.email"] = "myemail"
@@ -121,25 +121,19 @@ def git_project_factory(tmp_path):
             self.initfile.write_text(
                 f"""
     __version__ = "{version}"
-    """.lstrip()
+""".lstrip()
             )
 
-            repo.index.add(self.initfile.relative_to(self.dst))
-            tree = repo.index.write_tree()
+            repo.index.add(self.initfile.relative_to(self.workdir))
+            repo.index.write()
 
             sig = Signature("no-body", "a.b.c@example.com")
-            repo.create_commit("HEAD", sig, sig, "hello", tree, [])
+            repo.create_commit("HEAD", sig, sig, "hello", repo.index.write_tree(), [])
             return self
 
         @property
         def version(self):
-            return (
-                (self.dst / "src/__init__.py")
-                .read_text()
-                .partition("=")[2]
-                .strip()
-                .strip('"')
-            )
+            return self.initfile.read_text().partition("=")[2].strip().strip('"')
 
         @property
         def branch(self):
