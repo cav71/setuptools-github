@@ -95,6 +95,71 @@ def scripter(request, tmp_path_factory, datadir):
     return Scripter(pathlib.Path(request.module.__file__).parent, datadir)
 
 
+@pytest.fixture(scope="function")
+def git_project_factory(tmp_path):
+    class Project:
+        def __init__(self, dst, repo=None):
+            self.dst = dst
+            self.repo = repo
+
+        @property
+        def initfile(self):
+            return self.dst / "src" / "__init__.py"
+
+        def create(self, version, dst=None):
+            from pygit2 import init_repository, Repository, Signature
+
+            self.dst = dst or self.dst
+
+            init_repository(self.dst)
+            self.repo = repo = Repository(self.dst)
+
+            repo.config["user.name"] = "myusername"
+            repo.config["user.email"] = "myemail"
+
+            self.initfile.parent.mkdir(parents=True, exist_ok=True)
+            self.initfile.write_text(
+                f"""
+    __version__ = "{version}"
+    """.lstrip()
+            )
+
+            repo.index.add(self.initfile.relative_to(self.dst))
+            tree = repo.index.write_tree()
+
+            sig = Signature("no-body", "a.b.c@example.com")
+            repo.create_commit("HEAD", sig, sig, "hello", tree, [])
+            return self
+
+        @property
+        def version(self):
+            return (
+                (self.dst / "src/__init__.py")
+                .read_text()
+                .partition("=")[2]
+                .strip()
+                .strip('"')
+            )
+
+        @property
+        def branch(self):
+            return self.repo.head.shorthand
+
+        def checkout(self, name):
+            cur = self.branch
+            ref = self.repo.lookup_reference(self.repo.lookup_branch(name).name)
+            self.repo.checkout(ref)
+            return cur
+
+        @contextlib.contextmanager
+        def in_branch(self, name):
+            original = self.checkout(name)
+            yield original
+            self.checkout(original)
+
+    return lambda subdir: Project(tmp_path / subdir)
+
+
 def pytest_configure(config):
     config.addinivalue_line("markers", "manual: test intented to run manually")
 

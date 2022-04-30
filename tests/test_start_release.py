@@ -21,8 +21,8 @@ class Project:
 
         (dst / "src").mkdir(parents=True, exist_ok=True)
         (dst / "src" / "__init__.py").write_text(
-            """
-__version__ = "0.0.3"
+            f"""
+__version__ = "{version}"
 """.lstrip()
         )
 
@@ -60,13 +60,13 @@ __version__ = "0.0.3"
         self.checkout(original)
 
 
-def test_newversion():
-    assert "0.0.2" == sr.newversion("0.0.1", "micro")
-    assert "0.0.3" == sr.newversion("0.0.2", "micro")
+def test_bump_version():
+    assert "0.0.2" == sr.bump_version("0.0.1", "micro")
+    assert "0.0.3" == sr.bump_version("0.0.2", "micro")
 
-    assert "0.1.0" == sr.newversion("0.0.2", "minor")
+    assert "0.1.0" == sr.bump_version("0.0.2", "minor")
 
-    assert "2.0.0" == sr.newversion("1.2.3", "major")
+    assert "2.0.0" == sr.bump_version("1.2.3", "major")
 
 
 def test_extract_beta_branches():
@@ -90,7 +90,9 @@ def test_extract_beta_branches():
     }
 
 
-def test_end2end(tmp_path, capsys):
+def test_end2end_betas(tmp_path, capsys):
+    "end2end run for a beta branch"
+
     project = Project(tmp_path / "project").create("0.0.3")
     assert project.branch == "master"
     assert project.version == "0.0.3"
@@ -127,3 +129,21 @@ def test_end2end(tmp_path, capsys):
     project.checkout("master")
     assert project.branch == "master"
     assert project.version == "0.1.0"
+
+
+def test_end2end_release(git_project_factory, capsys):
+    "end2end run for a release"
+    project = git_project_factory("project1").create("0.1.0")
+    assert project.branch == "master"
+    assert project.version == "0.1.0"
+
+    args = [
+        "-w",
+        project.dst,
+        "release",
+        project.initfile,
+        "--no-checks",
+    ]
+    kwargs = sr.parse_args([str(a) for a in args])
+    sr.run(**kwargs)
+    return
