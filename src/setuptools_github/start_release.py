@@ -59,8 +59,10 @@ def check_remotes(
 
     if not error:
 
-        def error(msg):
+        def errorfn(msg):
             raise RuntimeError(msg)
+
+        error = errorfn
 
     # check repo has a single remote
     remotes = {remote.name for remote in repo.remotes}
@@ -102,7 +104,7 @@ def repo_checks(
     current = repo.head.shorthand
     log.debug("current branch %s", current)
     if current != "master":
-        (log.error if dryrun else error)(
+        (log.error if dryrun else error)(  # type: ignore
             f"current branch is '{current}' but this script runs on the 'master' branch"
         )
 
@@ -112,7 +114,7 @@ def repo_checks(
 
     modified = {p for p, f in repo.status().items() if not ignore(f)}
     if modified:
-        (log.error if (dryrun or force) else error)(
+        (log.error if (dryrun or force) else error)(  # type: ignore
             "local modification staged for commit, use -f|--force to skip check"
         )
 
@@ -127,7 +129,7 @@ def repo_checks(
     is_in_local = bool([b for b in local_branches if b.endswith(f"beta/{curver}")])
     is_in_remote = bool([b for b in remote_branches if b.endswith(f"beta/{curver}")])
     if not (is_in_local or is_in_remote):
-        (log.error if (dryrun or force) else error)(
+        (log.error if (dryrun or force) else error)(  # type: ignore
             f"cannot find 'beta/{curver}' branch in the local or remote branches"
         )
 
@@ -135,11 +137,11 @@ def repo_checks(
     is_in_local = bool([b for b in local_branches if b.endswith(f"beta/{newver}")])
     is_in_remote = bool([b for b in remote_branches if b.endswith(f"beta/{newver}")])
     if is_in_local:
-        (log.error if (dryrun or force) else error)(
+        (log.error if (dryrun or force) else error)(  # type: ignore
             f"found 'beta/{newver}' branch in the local branches"
         )
     if is_in_remote:
-        (log.error if (dryrun or force) else error)(
+        (log.error if (dryrun or force) else error)(  # type: ignore
             f"found 'beta/{newver}' branch in the remote branches"
         )
 
