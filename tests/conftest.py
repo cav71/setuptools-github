@@ -97,6 +97,10 @@ def scripter(request, tmp_path_factory, datadir):
 
 @pytest.fixture(scope="function")
 def git_project_factory(tmp_path):
+    # on windows we need to add paths with / separator
+    def _2p(path):
+        return str(path).replace("\\", "/")
+
     class Project:
         def __init__(self, workdir, repo=None):
             self.workdir = workdir
@@ -124,7 +128,7 @@ def git_project_factory(tmp_path):
 """.lstrip()
             )
 
-            repo.index.add(self.initfile.relative_to(self.workdir))
+            repo.index.add(_2p(self.initfile.relative_to(self.workdir)))
             repo.index.write()
 
             sig = Signature("no-body", "a.b.c@example.com")
