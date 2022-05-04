@@ -102,26 +102,34 @@ def git_project_factory(tmp_path):
         return str(path).replace("\\", "/")
 
     class Project:
-        def __init__(self, workdir, repo=None):
+        def __init__(self, workdir, repo=None, sig=None):
             self.workdir = workdir
             self.repo = repo
+            self.sig = sig
 
         @property
         def initfile(self):
             return self.workdir / "src" / "__init__.py"
 
-        def create(self, version, workdir=None):
+        def create(self, version, workdir=None, force=False):
+            from shutil import rmtree
             from pygit2 import init_repository, Repository, Signature
 
             self.workdir = workdir or self.workdir
+            if force:
+                rmtree(self.workdir, ignore_errors=True)
 
             init_repository(self.workdir)
             self.repo = repo = Repository(self.workdir)
+            self.sig = Signature("no-body", "a.b.c@example.com")
 
             repo.config["user.name"] = "myusername"
             repo.config["user.email"] = "myemail"
 
             self.initfile.parent.mkdir(parents=True, exist_ok=True)
+            if version is None:
+                return self
+
             self.initfile.write_text(
                 f"""
     __version__ = "{version}"
@@ -142,6 +150,23 @@ def git_project_factory(tmp_path):
         @property
         def branch(self):
             return self.repo.head.shorthand
+
+        def commit(self, paths, message):
+            ref = self.repo.head.name
+            parents = [self.repo.head.target]
+            index = self.repo.index
+            for path in [paths] if isinstance(paths, (str, pathlib.Path)) else paths:
+                index.add(_2p(path.relative_to(self.workdir)))
+            index.write()
+            self.repo.create_commit(
+                ref, self.sig, self.sig, message, index.write_tree(), parents
+            )
+
+        def tag(self, name, ref=None):
+            head = ref or self.repo.head
+            return self.repo.references.create(
+                f"refs/tags/{name.lstrip('/')}", head.target
+            )
 
         def checkout(self, name):
             cur = self.branch
