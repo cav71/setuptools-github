@@ -65,9 +65,10 @@ def get_module_var(
                     self.result[target.id] = value
             return self.generic_visit(node)
 
-    tree = ast.parse(Path(path).read_text())
     v = V({var})
-    v.visit(tree)
+    if path.exists():
+        tree = ast.parse(Path(path).read_text())
+        v.visit(tree)
     if var not in v.result and abort:
         raise MissingVariable(f"cannot find {var} in {path}", path, var)
     return v.result.get(var, None)
