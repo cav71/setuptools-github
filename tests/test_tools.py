@@ -2,8 +2,8 @@ import pytest
 import itertools
 from setuptools_github import tools
 
-# these have the same format as generated from ${{ toJson(github) }}
-GIT_DUMPS = {
+# this is the output from ${{ toJson(github) }}
+GITHUB = {
     "beta": {
         "ref": "refs/heads/beta/0.0.4",
         "sha": "2169f90c22e",
@@ -23,7 +23,7 @@ GIT_DUMPS = {
 
 
 def test_hubversion():
-    "extracts from a GIT_DUMPS a (version, hash) tuple"
+    "extracts from a GITHUB a (version, hash) tuple"
 
     fallbacks = [
         "123",
@@ -39,9 +39,9 @@ def test_hubversion():
         ("master", ""): ("", "2169f90c"),
     }
 
-    itrange = itertools.product(GIT_DUMPS, fallbacks)
+    itrange = itertools.product(GITHUB, fallbacks)
     for key, fallback in itrange:
-        gdata = GIT_DUMPS[key]
+        gdata = GITHUB[key]
         expected = expects[(key, fallback)]
         assert expected == tools.hubversion(gdata, fallback)
 
@@ -161,7 +161,7 @@ __hash__ = "4.5.6"
     assert hashval == sha224(initfile.read_bytes()).hexdigest()
 
     # we update the __version__/__hash__ from a master branch
-    tools.update_version(initfile, GIT_DUMPS["master"])
+    tools.update_version(initfile, GITHUB["master"])
     assert (
         initfile.read_text()
         == """
@@ -175,7 +175,7 @@ __hash__ = "2169f90c"
 
     # we update __version__/__hash__ from a beta branch (note the b<build-number>)
     writeinit(initfile)
-    tools.update_version(initfile, GIT_DUMPS["beta"])
+    tools.update_version(initfile, GITHUB["beta"])
     assert (
         initfile.read_text()
         == """
@@ -188,7 +188,7 @@ __hash__ = "2169f90c22e"
     )
 
     writeinit(initfile)
-    tools.update_version(initfile, GIT_DUMPS["release"])
+    tools.update_version(initfile, GITHUB["release"])
     assert (
         initfile.read_text()
         == """

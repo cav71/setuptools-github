@@ -18,6 +18,44 @@ class InvalidGithubReference(GithubError):
     pass
 
 
+def hubversion(gdata: Any, fallback: Optional[str]) -> Tuple[Optional[str], str]:
+    """extracts a (version, shasum) from a $GITHUB_DUMP variable
+
+    Args:
+        gdata: json dictionary from $GITHUB_DUMP
+        fallback: if a version is not defined in gdata uses fallback
+
+    Returns:
+        (str, str): <update-version>, <shasum>
+    """
+
+    def validate(txt):
+        return ".".join(str(int(v)) for v in txt.split("."))
+
+    ref = gdata["ref"]  # eg. "refs/tags/release/0.0.3"
+    number = gdata["run_number"]  # eg. 3
+    shasum = gdata["sha"]  # eg. "2169f90c"
+
+    # the logic is:
+
+    # if we are on master we fallback (likely to the version in the __init__.py module)
+    if ref == "refs/heads/master":
+        return (fallback, shasum)
+
+    # on a beta branch we add a "b<build-number>" string to the __init__.py version
+    # the bersion is taken from the refs/heads/beta/<version>
+    if ref.startswith("refs/heads/beta/"):
+        version = validate(ref.rpartition("/")[2])
+        return (f"{version}b{number}", shasum)
+
+    # on a release we use the version from the refs/tags/release/<version>
+    if ref.startswith("refs/tags/release/"):
+        version = validate(ref.rpartition("/")[2])
+        return (f"{version}", shasum)
+
+    raise InvalidGithubReference("unhandled github ref", gdata)
+
+
 def get_module_var(
     path: Union[Path, str], var: str = "__version__", abort=True
 ) -> Optional[str]:
@@ -119,44 +157,6 @@ def set_module_var(
     with Path(path).open("w") as fp:
         fp.write(txt)
     return fixed, txt
-
-
-def hubversion(gdata: Any, fallback: Optional[str]) -> Tuple[Optional[str], str]:
-    """extracts a (version, shasum) from a GITHUB_DUMP variable
-
-    Args:
-        gdata: json dictionary from GITHUB_DUMP
-        fallback: if a version is not defined in gdata uses fallback
-
-    Returns:
-        (str, str): <update-version>, <shasum>
-    """
-
-    def validate(txt):
-        return ".".join(str(int(v)) for v in txt.split("."))
-
-    ref = gdata["ref"]  # eg. "refs/tags/release/0.0.3"
-    number = gdata["run_number"]  # eg. 3
-    shasum = gdata["sha"]  # eg. "2169f90c"
-
-    # the logic is:
-
-    # if we are on master we fallback (likely to the version in the __init__.py module)
-    if ref == "refs/heads/master":
-        return (fallback, shasum)
-
-    # on a beta branch we add a "b<build-number>" string to the __init__.py version
-    # the bersion is taken from the refs/heads/beta/<version>
-    if ref.startswith("refs/heads/beta/"):
-        version = validate(ref.rpartition("/")[2])
-        return (f"{version}b{number}", shasum)
-
-    # on a release we use the version from the refs/tags/release/<version>
-    if ref.startswith("refs/tags/release/"):
-        version = validate(ref.rpartition("/")[2])
-        return (f"{version}", shasum)
-
-    raise InvalidGithubReference("unhandled github ref", gdata)
 
 
 def update_version(
