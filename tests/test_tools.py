@@ -22,6 +22,31 @@ GITHUB = {
 }
 
 
+def test_indent():
+    found = tools.indent(
+        """
+    This is a simply
+       indented text
+      with some special
+         formatting
+"""[
+            1:
+        ],
+        "..",
+    )
+    assert (
+        """
+..This is a simply
+..   indented text
+..  with some special
+..     formatting
+"""[
+            1:-1
+        ]
+        == found.strip()
+    )
+
+
 def test_hubversion():
     "extracts from a GITHUB a (version, hash) tuple"
 

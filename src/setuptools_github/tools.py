@@ -18,12 +18,39 @@ class InvalidGithubReference(GithubError):
     pass
 
 
+def indent(txt: str, pre: str = " " * 2) -> str:
+    "simple text indentation"
+
+    from textwrap import dedent
+
+    txt = dedent(txt)
+    if txt.endswith("\n"):
+        last_eol = "\n"
+        txt = txt[:-1]
+    else:
+        last_eol = ""
+
+    return pre + txt.replace("\n", "\n" + pre) + last_eol
+
+
 def hubversion(gdata: Any, fallback: Optional[str]) -> Tuple[Optional[str], str]:
-    """extracts a (version, shasum) from a $GITHUB_DUMP variable
+    """gets a (version, sha) tuple from gdata.
+
+    GITHUB_DUMP is a json dump of the environment during an action run and
+    we pull the ref, run_number and sha keys.
+
+    ref can be something like refs/heads/master for the master branch,
+    refs/heads/beta/0.0.4 for a beta branch or refs/tags/release/0.0.3 for
+    a release tag.
+
+    the version returned is:
+        ("", "<sha-value>") for the master branch
+        ("0.0.4b8", "<sha-value>") for a beta branch (<version>b<build-number>)
+        ("0.0.3", "<sha-value>") for the release
 
     Args:
         gdata: json dictionary from $GITHUB_DUMP
-        fallback: if a version is not defined in gdata uses fallback
+        fallback: returns this if a version is not defined in gdata
 
     Returns:
         (str, str): <update-version>, <shasum>
@@ -36,19 +63,19 @@ def hubversion(gdata: Any, fallback: Optional[str]) -> Tuple[Optional[str], str]
     number = gdata["run_number"]  # eg. 3
     shasum = gdata["sha"]  # eg. "2169f90c"
 
-    # the logic is:
+    # the logic for the returned version:
 
-    # if we are on master we fallback (likely to the version in the __init__.py module)
+    # 1. if we are on master we use the version from the __init__.py module
     if ref == "refs/heads/master":
         return (fallback, shasum)
 
-    # on a beta branch we add a "b<build-number>" string to the __init__.py version
-    # the bersion is taken from the refs/heads/beta/<version>
+    # 2. on a beta branch we add a "b<build-number>" string to the __init__.py version
+    #    the bersion is taken from the refs/heads/beta/<version>
     if ref.startswith("refs/heads/beta/"):
         version = validate(ref.rpartition("/")[2])
         return (f"{version}b{number}", shasum)
 
-    # on a release we use the version from the refs/tags/release/<version>
+    # 3. on a release we use the version from the refs/tags/release/<version>
     if ref.startswith("refs/tags/release/"):
         version = validate(ref.rpartition("/")[2])
         return (f"{version}", shasum)
@@ -59,10 +86,10 @@ def hubversion(gdata: Any, fallback: Optional[str]) -> Tuple[Optional[str], str]
 def get_module_var(
     path: Union[Path, str], var: str = "__version__", abort=True
 ) -> Optional[str]:
-    """extracts from <filename> the module level <var> variable
+    """extract from a python module in path the module level <var> variable
 
     Args:
-        path (str,Path): python module file to parse
+        path (str,Path): python module file to parse using ast (no code-execution)
         var (str): module level variable name to extract
         abort (bool): raise MissingVariable if var is not present
 
@@ -82,6 +109,7 @@ def get_module_var(
             self.result = {}
 
         def visit_Module(self, node):
+            # we extract the module level variables
             for subnode in ast.iter_child_nodes(node):
                 if not isinstance(subnode, ast.Assign):
                     continue
