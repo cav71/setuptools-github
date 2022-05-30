@@ -132,6 +132,7 @@ def get_module_var(
             return self.generic_visit(node)
 
     v = V({var})
+    path = Path(path)
     if path.exists():
         tree = ast.parse(Path(path).read_text())
         v.visit(tree)
