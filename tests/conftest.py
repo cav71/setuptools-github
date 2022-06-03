@@ -102,6 +102,32 @@ def git_project_factory(tmp_path):
         return str(path).replace("\\", "/")
 
     class Project:
+        def debug(self, *args):
+            if args in {tuple(), ("all",)}:
+                cmds = [
+                    [
+                        "status",
+                    ],
+                    [
+                        "branch",
+                        "-av",
+                    ],
+                    [
+                        "remote",
+                        "-v",
+                    ],
+                    [
+                        "log",
+                    ],
+                ]
+            else:
+                cmds = [[str(a) for a in args]]
+            for cmd in cmds:
+                out = subprocess.check_output(
+                    ["git", *cmd], cwd=self.workdir, encoding="utf-8"
+                )
+                print(out)
+
         def __init__(self, workdir, repo=None, sig=None):
             self.workdir = workdir
             self.repo = repo
@@ -111,7 +137,33 @@ def git_project_factory(tmp_path):
         def initfile(self):
             return self.workdir / "src" / "__init__.py"
 
-        def create(self, version, workdir=None, force=False):
+        @property
+        def version(self):
+            return self.initfile.read_text().partition("=")[2].strip().strip('"')
+
+        @property
+        def branch(self):
+            return self.repo.head
+
+        def commit(self, paths, message):
+            from pathlib import Path
+            from pygit2 import GitError
+
+            ref = "HEAD"
+            with contextlib.suppress(GitError):
+                ref = self.repo.head.name
+            parents = []
+            with contextlib.suppress(GitError):
+                parents = [self.repo.head.target]
+            index = self.repo.index
+            for path in [Path(paths)] if isinstance(paths, (str, Path)) else paths:
+                index.add(_2p(path.relative_to(self.workdir)))
+            index.write()
+            return self.repo.create_commit(
+                ref, self.sig, self.sig, message, index.write_tree(), parents
+            )
+
+        def create(self, version, workdir=None, force=False, remote=True):
             from shutil import rmtree
             from pygit2 import init_repository, Repository, Signature
 
@@ -121,64 +173,57 @@ def git_project_factory(tmp_path):
 
             init_repository(self.workdir)
             self.repo = repo = Repository(self.workdir)
-            self.sig = Signature("no-body", "a.b.c@example.com")
-
             repo.config["user.name"] = "myusername"
             repo.config["user.email"] = "myemail"
 
-            self.initfile.parent.mkdir(parents=True, exist_ok=True)
-            if version is None:
-                return self
+            if not self.sig:
+                self.sig = Signature(
+                    repo.config["user.name"], repo.config["user.email"]
+                )
 
-            self.initfile.write_text(
-                f"""
+            if remote:
+                self.repo.remotes.create(
+                    *(("origin", "no-url", "origin") if remote is True else remote)
+                )
+
+            if version is not None:
+                self.initfile.parent.mkdir(parents=True, exist_ok=True)
+                self.initfile.write_text(
+                    f"""
     __version__ = "{version}"
 """.lstrip()
-            )
-
-            repo.index.add(_2p(self.initfile.relative_to(self.workdir)))
-            repo.index.write()
-
-            sig = Signature("no-body", "a.b.c@example.com")
-            repo.create_commit("HEAD", sig, sig, "hello", repo.index.write_tree(), [])
+                )
+                self.commit([self.initfile], "initial commit")
             return self
 
-        @property
-        def version(self):
-            return self.initfile.read_text().partition("=")[2].strip().strip('"')
+        def create_branch(self, name, commit=None, remote=False, exist_ok=False):
+            commit = commit or self.repo.get(self.repo.head.target)
+            target = self.repo.branches.remote if remote else self.repo.branches.local
+            if name in target and exist_ok:
+                branch = target[name]
+            else:
+                if remote:
+                    self.repo.remotes.create(
+                        name, "no-url" if remote is True else remote
+                    )
+                    return self.repo.references.create(
+                        f"refs/remotes/{name}", commit.oid
+                    )
+                branch = target.create(name, commit)
+            return branch
 
-        @property
-        def branch(self):
-            return self.repo.head.shorthand
-
-        def commit(self, paths, message):
-            ref = self.repo.head.name
-            parents = [self.repo.head.target]
-            index = self.repo.index
-            for path in [paths] if isinstance(paths, (str, pathlib.Path)) else paths:
-                index.add(_2p(path.relative_to(self.workdir)))
-            index.write()
-            self.repo.create_commit(
-                ref, self.sig, self.sig, message, index.write_tree(), parents
-            )
+        def checkout(self, *, branch=None, exist_ok=False):
+            if branch:
+                branch_object = self.create_branch(branch, exist_ok=exist_ok)
+                self.repo.checkout(branch_object)
+            else:
+                raise NotImplementedError("operation not implemented")
 
         def tag(self, name, ref=None):
             head = ref or self.repo.head
             return self.repo.references.create(
                 f"refs/tags/{name.lstrip('/')}", head.target
             )
-
-        def checkout(self, name):
-            cur = self.branch
-            ref = self.repo.lookup_reference(self.repo.lookup_branch(name).name)
-            self.repo.checkout(ref)
-            return cur
-
-        @contextlib.contextmanager
-        def in_branch(self, name):
-            original = self.checkout(name)
-            yield original
-            self.checkout(original)
 
     return lambda subdir: Project(tmp_path / subdir)
 
