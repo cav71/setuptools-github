@@ -18,7 +18,7 @@ class Failure(Check):
 
 def check_has_single_remote(
     repo: pygit2.Repository, remote: Optional[str] = None, _testmode: bool = False
-) -> Optional[List[Check]]:
+) -> List[Failure]:
     "given a pygit2 Repo instance check it has a single remote"
 
     errors = []
@@ -42,7 +42,7 @@ def check_has_single_remote(
     return errors if _testmode else errors[:1]
 
 
-def check_initfile(initfile: Path, _testmode: bool = False) -> Optional[List[Check]]:
+def check_initfile(initfile: Path, _testmode: bool = False) -> Optional[List[Failure]]:
     "check the initfile presence and contents"
 
     errors = []
@@ -65,8 +65,11 @@ def check_initfile(initfile: Path, _testmode: bool = False) -> Optional[List[Che
 
 
 def check_for_release(
-    repo: pygit2.Repository, initfile: Path, curver: str = "", _testmode: bool = False
-) -> Optional[List[Check]]:
+    repo: pygit2.Repository,
+    initfile: Path,
+    curver: Optional[str] = None,
+    _testmode: bool = False,
+) -> Optional[List[Failure]]:
     from re import compile
 
     regex_beta = compile(r"/?beta/(?P<ver>\d+([.]\d+)*)$")
@@ -75,8 +78,8 @@ def check_for_release(
 
     curver = curver or tools.get_module_var(initfile, "__version__", abort=False)
     thisver = None
-    if regex_beta.match(repo.head.shorthand):
-        thisver = regex_beta.match(repo.head.shorthand).groupdict()["ver"]
+    if matched := regex_beta.match(repo.head.shorthand):
+        thisver = matched.groupdict()["ver"]
 
     # check we are in a beta branch
     if _testmode or not regex_beta.match(repo.head.shorthand):
