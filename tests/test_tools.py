@@ -224,3 +224,11 @@ __hash__ = "5547365c82"
 # end of test
 """
     )
+
+
+def test_bump_version():
+    "bump version test"
+    assert tools.bump_version("0.0.1", "micro") == "0.0.2"
+    assert tools.bump_version("0.0.2", "micro") == "0.0.3"
+    assert tools.bump_version("0.0.2", "minor") == "0.1.0"
+    assert tools.bump_version("1.2.3", "major") == "2.0.0"

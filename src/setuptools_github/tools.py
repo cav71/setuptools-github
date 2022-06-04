@@ -211,3 +211,31 @@ def update_version(
     set_module_var(path, "__version__", version)
     set_module_var(path, "__hash__", thehash)
     return version
+
+
+def bump_version(version: str, mode: str) -> str:
+    """given a version str will bump it according to mode
+
+    Arguments:
+        version: text in the N.M.O form
+        mode: major, minor or micro
+
+    Returns:
+        increased text
+
+    >>> bump_version("1.0.3", "micro")
+    "1.0.4"
+    >>> bump_version("1.0.3", "minor")
+    "1.1.0"
+    """
+    newver = [int(n) for n in version.split(".")]
+    if mode == "major":
+        newver[-3] += 1
+        newver[-2] = 0
+        newver[-1] = 0
+    elif mode == "minor":
+        newver[-2] += 1
+        newver[-1] = 0
+    else:
+        newver[-1] += 1
+    return ".".join(str(v) for v in newver)
