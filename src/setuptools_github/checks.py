@@ -77,9 +77,9 @@ def check_for_release(
     errors = []
 
     curver = curver or tools.get_module_var(initfile, "__version__", abort=False)
-    thisver = None
-    if matched := regex_beta.match(repo.head.shorthand):
-        thisver = matched.groupdict()["ver"]
+
+    matched = regex_beta.match(repo.head.shorthand)
+    thisver = matched.groupdict()["ver"] if matched else None
 
     # check we are in a beta branch
     if _testmode or not regex_beta.match(repo.head.shorthand):
