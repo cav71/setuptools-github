@@ -47,7 +47,7 @@ def check_initfile(initfile: Path, _testmode: bool = False) -> Optional[List[Fai
 
     errors = []
     if _testmode or not initfile.exists():
-        errors.append(Failure(f"no file '{initfile}' found"))
+        errors.append(Failure(f"no init file '{initfile}' found"))
 
     curver = tools.get_module_var(initfile, "__version__", abort=False)
     if _testmode or not curver:

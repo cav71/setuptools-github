@@ -40,7 +40,7 @@ def test_check_initifile(git_project_factory):
 
     # initfile not present -> fail
     assert checks.check_initfile(project.initfile)
-    assert checks.check_initfile(project.initfile)[0].msg.startswith("no file")
+    assert checks.check_initfile(project.initfile)[0].msg.startswith("no init file")
 
     project.initfile.parent.mkdir(parents=True, exist_ok=True)
 
