@@ -232,3 +232,24 @@ def test_bump_version():
     assert tools.bump_version("0.0.2", "micro") == "0.0.3"
     assert tools.bump_version("0.0.2", "minor") == "0.1.0"
     assert tools.bump_version("1.2.3", "major") == "2.0.0"
+
+
+def test_extract_beta_branches():
+    branches = [
+        "master",
+        "main",
+        "beta/0.0.0",
+        "foobar/beta/0.0.1",
+        "foobar/beta/0.0.0.2",
+        "beta/gamma/0.0",
+    ]
+
+    assert tools.extract_beta_branches(branches) == {
+        "beta/0.0.0",
+        "foobar/beta/0.0.1",
+        "foobar/beta/0.0.0.2",
+    }
+    assert tools.extract_beta_branches(branches, remote="foobar") == {
+        "foobar/beta/0.0.1",
+        "foobar/beta/0.0.0.2",
+    }

@@ -101,6 +101,18 @@ def git_project_factory(tmp_path):
     def _2p(path):
         return str(path).replace("\\", "/")
 
+    def indent(txt, pre=" " * 2):
+        from textwrap import dedent
+
+        txt = dedent(txt)
+        if txt.endswith("\n"):
+            last_eol = "\n"
+            txt = txt[:-1]
+        else:
+            last_eol = ""
+
+        return pre + txt.replace("\n", "\n" + pre) + last_eol
+
     class Project:
         def debug(self, *args):
             if args in {tuple(), ("all",)}:
@@ -122,11 +134,13 @@ def git_project_factory(tmp_path):
                 ]
             else:
                 cmds = [[str(a) for a in args]]
+            lines = f"REPO: {self.workdir}"
             for cmd in cmds:
                 out = subprocess.check_output(
                     ["git", *cmd], cwd=self.workdir, encoding="utf-8"
                 )
-                print(out)
+                lines += f"\n [{cmd[0]}]\n" + indent(out)
+            print(lines)
 
         def __init__(self, workdir, repo=None, sig=None):
             self.workdir = workdir
@@ -163,6 +177,19 @@ def git_project_factory(tmp_path):
                 ref, self.sig, self.sig, message, index.write_tree(), parents
             )
 
+        def create_from_existing(self):
+            from pygit2 import Repository, Signature
+
+            self.repo = repo = Repository(self.workdir)
+            repo.config["user.name"] = "myusername"
+            repo.config["user.email"] = "myemail"
+
+            if not self.sig:
+                self.sig = Signature(
+                    repo.config["user.name"], repo.config["user.email"]
+                )
+            return self
+
         def create(self, version, workdir=None, force=False, remote=True):
             from shutil import rmtree
             from pygit2 import init_repository, Repository, Signature
@@ -172,14 +199,7 @@ def git_project_factory(tmp_path):
                 rmtree(self.workdir, ignore_errors=True)
 
             init_repository(self.workdir)
-            self.repo = repo = Repository(self.workdir)
-            repo.config["user.name"] = "myusername"
-            repo.config["user.email"] = "myemail"
-
-            if not self.sig:
-                self.sig = Signature(
-                    repo.config["user.name"], repo.config["user.email"]
-                )
+            self.create_from_existing()
 
             if remote:
                 self.repo.remotes.create(
@@ -211,6 +231,9 @@ def git_project_factory(tmp_path):
                     )
                 branch = target.create(name, commit)
             return branch
+
+        def create_remote(self, name, url="invalid-url"):
+            self.create_branch(f"origin/{name}", remote=url)
 
         def checkout(self, *, branch=None, exist_ok=False):
             if branch:

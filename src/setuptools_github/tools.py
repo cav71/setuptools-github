@@ -3,7 +3,7 @@ import ast
 import json
 
 from pathlib import Path
-from typing import Any, Union, Tuple, Optional
+from typing import Any, Union, Tuple, Optional, List
 
 
 class GithubError(Exception):
@@ -239,3 +239,14 @@ def bump_version(version: str, mode: str) -> str:
     else:
         newver[-1] += 1
     return ".".join(str(v) for v in newver)
+
+
+def extract_beta_branches(branches: List[str], remote: Optional[str] = None):
+    result = set()
+    for branch in branches:
+        match = branch.partition("/")[0]
+        if remote and remote != match:
+            continue
+        if re.search(r"beta/\d+([.]\d+)*", branch):
+            result.add(branch)
+    return result
