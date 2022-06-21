@@ -22,31 +22,6 @@ GITHUB = {
 }
 
 
-def test_indent():
-    found = tools.indent(
-        """
-    This is a simply
-       indented text
-      with some special
-         formatting
-"""[
-            1:
-        ],
-        "..",
-    )
-    assert (
-        """
-..This is a simply
-..   indented text
-..  with some special
-..     formatting
-"""[
-            1:-1
-        ]
-        == found.strip()
-    )
-
-
 def test_abort_exception():
     a = tools.AbortExecution(
         "a one-line error message",
@@ -64,27 +39,24 @@ def test_abort_exception():
 
     assert a.message == "a one-line error message"
     assert (
-        a.explain
+        f"\n{a.explain}\n"
         == """
 A multi line
   explaination of
    what happened
  with some detail
-"""[
-            1:-1
-        ]
+"""
     )
     assert (
-        a.hint
+        f"\n{a.hint}\n"
         == """
 Another multiline hint how
   to fix the issue
-"""[
-            1:-1
-        ]
+"""
     )
+
     assert (
-        str(a)
+        f"\n{str(a)}\n"
         == """
 a one-line error message
   A multi line
@@ -94,9 +66,7 @@ a one-line error message
 hint:
   Another multiline hint how
     to fix the issue
-"""[
-            1:-1
-        ]
+"""
     )
 
     a = tools.AbortExecution("hello world")
@@ -104,6 +74,24 @@ hint:
     assert a.explain == ""
     assert a.hint == ""
     assert str(a) == "hello world"
+
+
+def test_indent():
+    txt = """
+    This is a simply
+       indented text
+      with some special
+         formatting
+"""
+    expected = """
+..This is a simply
+..   indented text
+..  with some special
+..     formatting
+"""
+
+    found = tools.indent(txt[1:], "..")
+    assert f"\n{found}" == expected
 
 
 def test_hubversion():
@@ -291,6 +279,7 @@ def test_bump_version():
     assert tools.bump_version("0.0.2", "micro") == "0.0.3"
     assert tools.bump_version("0.0.2", "minor") == "0.1.0"
     assert tools.bump_version("1.2.3", "major") == "2.0.0"
+    assert tools.bump_version("1.2.3", "release") == "1.2.3"
 
 
 def test_gitwrapper(tmp_path):

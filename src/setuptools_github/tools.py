@@ -20,10 +20,27 @@ class InvalidGithubReference(GithubError):
 
 
 class AbortExecution(Exception):
-    def __init__(self, message, explain="", hint=""):
+    @staticmethod
+    def _strip(txt):
+        txt = txt or ""
+        txt = txt[1:] if txt.startswith("\n") else txt
+        txt = indent(txt, pre="")
+        return txt[:-1] if txt.endswith("\n") else txt
+
+    def __init__(
+        self, message: str, explain: Optional[str] = None, hint: Optional[str] = None
+    ):
         self.message = message.strip()
-        self.explain = indent(explain, pre="")[1:-1] if explain else ""
-        self.hint = indent(hint, pre="")[1:-1] if hint else ""
+        self._explain = explain
+        self._hint = hint
+
+    @property
+    def explain(self):
+        return self._strip(self._explain)
+
+    @property
+    def hint(self):
+        return self._strip(self._hint)
 
     def __str__(self):
         result = [self.message]
@@ -252,7 +269,7 @@ def bump_version(version: str, mode: str) -> str:
     elif mode == "minor":
         newver[-2] += 1
         newver[-1] = 0
-    else:
+    elif mode == "micro":
         newver[-1] += 1
     return ".".join(str(v) for v in newver)
 
@@ -267,7 +284,7 @@ class GitWrapper:
     def init(self, clone=None, force=False):
         from shutil import rmtree
 
-        assert isinstance(clone, (None.__class__, GitWrapper))
+        assert isinstance(clone, (type(None), GitWrapper))
 
         if force:
             rmtree(self.workdir, ignore_errors=True)
