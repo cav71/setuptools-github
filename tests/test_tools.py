@@ -47,6 +47,65 @@ def test_indent():
     )
 
 
+def test_abort_exception():
+    a = tools.AbortExecution(
+        "a one-line error message",
+        """
+        A multi line
+          explaination of
+           what happened
+         with some detail
+    """,
+        """
+    Another multiline hint how
+      to fix the issue
+    """,
+    )
+
+    assert a.message == "a one-line error message"
+    assert (
+        a.explain
+        == """
+A multi line
+  explaination of
+   what happened
+ with some detail
+"""[
+            1:-1
+        ]
+    )
+    assert (
+        a.hint
+        == """
+Another multiline hint how
+  to fix the issue
+"""[
+            1:-1
+        ]
+    )
+    assert (
+        str(a)
+        == """
+a one-line error message
+  A multi line
+    explaination of
+     what happened
+   with some detail
+hint:
+  Another multiline hint how
+    to fix the issue
+"""[
+            1:-1
+        ]
+    )
+
+    a = tools.AbortExecution("hello world")
+    assert a.message == "hello world"
+    assert a.explain == ""
+    assert a.hint == ""
+    assert str(a) == "hello world"
+
+
 def test_hubversion():
     "extracts from a GITHUB a (version, hash) tuple"
 

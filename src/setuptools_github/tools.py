@@ -1,9 +1,10 @@
 import re
 import ast
 import json
+import subprocess
 
 from pathlib import Path
-from typing import Any, Union, Tuple, Optional
+from typing import Any, Union, Tuple, Optional, List
 
 
 class GithubError(Exception):
@@ -16,6 +17,21 @@ class MissingVariable(GithubError):
 
 class InvalidGithubReference(GithubError):
     pass
+
+
+class AbortExecution(Exception):
+    def __init__(self, message, explain="", hint=""):
+        self.message = message.strip()
+        self.explain = indent(explain, pre="")[1:-1] if explain else ""
+        self.hint = indent(hint, pre="")[1:-1] if hint else ""
+
+    def __str__(self):
+        result = [self.message]
+        if self.explain:
+            result.append(indent("\n" + self.explain, pre=" " * 2)[2:])
+        if self.hint:
+            result.extend(["\nhint:", indent("\n" + self.hint, pre=" " * 2)[2:]])
+        return "".join(result)
 
 
 def indent(txt: str, pre: str = " " * 2) -> str:
@@ -239,3 +255,53 @@ def bump_version(version: str, mode: str) -> str:
     else:
         newver[-1] += 1
     return ".".join(str(v) for v in newver)
+
+
+class GitWrapper:
+    EXE = "git"
+
+    def __init__(self, workdir: Union[Path, str], exe: Optional[str] = None):
+        self.workdir = Path(workdir)
+        self.exe = exe or self.EXE
+
+    def init(self, clone=None):
+        assert isinstance(clone, (None.__class__, GitWrapper))
+        if clone:
+            self(
+                ["clone", clone.workdir.absolute(), self.workdir.absolute()],
+            )
+        else:
+            self.workdir.mkdir(parents=True, exist_ok=True)
+            self("init")
+        return self
+
+    def __call__(self, cmd: Union[List[str], str], *args):
+        cmd = [cmd] if isinstance(cmd, str) else cmd[:]
+        if cmd[0].startswith(">"):
+            return getattr(self, cmd[0][1:])(*args)
+        cmd = [
+            self.exe,
+            *(
+                []
+                if cmd[0] == "clone"
+                else [
+                    "--git-dir",
+                    self.workdir.absolute() / ".git",
+                    "--work-tree",
+                    self.workdir.absolute(),
+                ]
+            ),
+            *cmd,
+        ]
+        txt = subprocess.check_output([str(c) for c in cmd], encoding="utf-8")
+        return txt
+
+    def __truediv__(self, other):
+        return self.workdir.absolute() / other
+
+    def dump(self):
+        lines = f"REPO: {self.workdir}"
+        lines += "\n [status]\n" + indent(self(["status"]))
+        lines += "\n [branch]\n" + indent(self(["branch", "-avv"]))
+        lines += "\n [remote]\n" + indent(self(["remote", "-v"]))
+        print(lines)
