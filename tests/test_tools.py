@@ -291,3 +291,12 @@ def test_bump_version():
     assert tools.bump_version("0.0.2", "micro") == "0.0.3"
     assert tools.bump_version("0.0.2", "minor") == "0.1.0"
     assert tools.bump_version("1.2.3", "major") == "2.0.0"
+
+
+def test_gitwrapper(tmp_path):
+    repo = tools.GitWrapper(tmp_path / "wow").init()
+    path = repo / "abc.txt"
+    path.write_text("hello")
+    repo(["add", path])
+    repo(["commit", "-m", "initial", path])
+    assert repo(["branch", "--show-current"]).strip() == "master"

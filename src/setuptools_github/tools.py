@@ -264,8 +264,14 @@ class GitWrapper:
         self.workdir = Path(workdir)
         self.exe = exe or self.EXE
 
-    def init(self, clone=None):
+    def init(self, clone=None, force=False):
+        from shutil import rmtree
+
         assert isinstance(clone, (None.__class__, GitWrapper))
+
+        if force:
+            rmtree(self.workdir, ignore_errors=True)
+
         if clone:
             self(
                 ["clone", clone.workdir.absolute(), self.workdir.absolute()],
@@ -275,10 +281,12 @@ class GitWrapper:
             self("init")
         return self
 
-    def __call__(self, cmd: Union[List[str], str], *args):
+    def __call__(self, cmd: Union[List[str], str], *args) -> str:
         cmd = [cmd] if isinstance(cmd, str) else cmd[:]
         if cmd[0].startswith(">"):
             return getattr(self, cmd[0][1:])(*args)
+        else:
+            assert not args, "cannot pass arguments with > shortcut"
         cmd = [
             self.exe,
             *(
