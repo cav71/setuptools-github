@@ -275,7 +275,7 @@ def bump_version(version: str, mode: str) -> str:
 
 
 class GitWrapper:
-    EXE = "git"
+    EXE: str = "git"
 
     def __init__(self, workdir: Union[Path, str], exe: Optional[str] = None):
         self.workdir = Path(workdir)
@@ -298,28 +298,25 @@ class GitWrapper:
             self("init")
         return self
 
-    def __call__(self, cmd: Union[List[str], str], *args) -> str:
-        cmd = [cmd] if isinstance(cmd, str) else cmd[:]
-        if cmd[0].startswith(">"):
-            return getattr(self, cmd[0][1:])(*args)
+    def __call__(self, cmd: Union[List[Any], Any], *args) -> str:
+        arguments = []
+        if isinstance(cmd, str):
+            arguments.append(cmd)
         else:
-            assert not args, "cannot pass arguments with > shortcut"
-        cmd = [
-            self.exe,
-            *(
-                []
-                if cmd[0] == "clone"
-                else [
-                    "--git-dir",
-                    self.workdir.absolute() / ".git",
-                    "--work-tree",
-                    self.workdir.absolute(),
-                ]
-            ),
-            *cmd,
-        ]
-        txt = subprocess.check_output([str(c) for c in cmd], encoding="utf-8")
-        return txt
+            arguments.extend(cmd[:])
+
+        if str(arguments[0]) != "clone":
+            arguments = [
+                self.exe,
+                "--git-dir",
+                str(self.workdir.absolute() / ".git"),
+                "--work-tree",
+                str(self.workdir.absolute()),
+                *[str(a) for a in arguments],
+            ]
+        else:
+            arguments = [self.exe, *[str(a) for a in arguments]]
+        return subprocess.check_output(arguments, encoding="utf-8")
 
     def __truediv__(self, other):
         return self.workdir.absolute() / other
