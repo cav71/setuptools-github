@@ -1,12 +1,27 @@
 import re
 import sys
 from pathlib import Path
-from typing import List, Optional, Callable, Dict
+from typing import List, Optional, Callable, Dict, TypeVar
+from mypy_extensions import Arg, DefaultArg, DefaultNamedArg
 import argparse
 
 from . import tools
 
 BETAEXPR = re.compile(r"beta/(?P<ver>\d+([.]\d+)*)")
+
+ErrorFunctionType = TypeVar(
+    "ErrorFunctionType",
+    bound=Callable[
+        [
+            Arg(str, "message"),
+            DefaultArg(str, "explain"),
+            DefaultArg(str, "hint"),
+            DefaultArg(Optional[argparse.ArgumentParser], "parser"),
+            DefaultArg(bool, "_testmode"),
+        ],
+        None,
+    ],
+)
 
 
 def error(
@@ -16,8 +31,9 @@ def error(
     parser: Optional[argparse.ArgumentParser] = None,
     _testmode: bool = False,
 ) -> None:
-    out = parser.format_usage().split("\n")
-    out.append(f"{parser.prog}: {message}")
+    if parser:
+        out = parser.format_usage().split("\n")
+        out.append(f"{parser.prog}: {message}")
     if explain:
         out.extend(tools.indent(explain.rstrip()).split("\n"))
 
@@ -28,7 +44,7 @@ def error(
         raise SystemExit(2)
 
 
-def check_initfile(error: Callable[[str, str, str], None], initfile: Path) -> None:
+def check_initfile(error: ErrorFunctionType, initfile: Path) -> None:
     if initfile.exists():
         curver = tools.get_module_var(initfile, "__version__", abort=False)
         if not curver:
@@ -52,7 +68,7 @@ def check_initfile(error: Callable[[str, str, str], None], initfile: Path) -> No
 
 
 def check_branch(
-    error: Callable[[str, str, str], None],
+    error: ErrorFunctionType,
     mode: str,
     curbranch: str,
     master: str = "master",
@@ -86,7 +102,7 @@ def check_branch(
 
 
 def check_version(
-    error: Callable[[str, str, str], None],
+    error: ErrorFunctionType,
     mode: str,
     initfile: Path,
     local_branches: List[str],
@@ -95,7 +111,7 @@ def check_version(
     master: str,
 ):
     curver = tools.get_module_var(initfile, "__version__", abort=False)
-    nextver = tools.bump_version(curver, mode)
+    nextver = tools.bump_version(curver or "", mode)
 
     if mode in {"release"}:
         if f"release/{curver}" in tags:
