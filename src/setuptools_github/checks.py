@@ -1,137 +1,136 @@
+import re
+import sys
 from pathlib import Path
-from typing import List, Optional
-
-import pygit2  # type: ignore
+from typing import List, Optional, Callable, Dict
+import argparse
 
 from . import tools
 
-
-class Check:
-    def __init__(self, msg: str, explain: Optional[str] = None):
-        self.msg = msg
-        self.explain = explain
+BETAEXPR = re.compile(r"beta/(?P<ver>\d+([.]\d+)*)")
 
 
-class Failure(Check):
-    pass
-
-
-def check_has_single_remote(
-    repo: pygit2.Repository, remote: Optional[str] = None, _testmode: bool = False
-) -> List[Failure]:
-    "given a pygit2 Repo instance check it has a single remote"
-
-    errors = []
-    # check repo has a single remote
-    remotes = {remote.name for remote in repo.remotes}
-    if _testmode or (len(remotes) > 1 and not remote):
-        errors.append(
-            Failure(
-                f"multiple remotes defined: {', '.join(remotes)}",
-                explain="""
-    The workdir must have a single remote; use `git remote -v' to list all remotes
-    and use the --remote flag to select one
-    """,
-            ),
-        )
-
-    if _testmode or (remote and remote not in remotes):
-        errors.append(
-            Failure(f"requested remote={remote} but found {', '.join(remotes)}")
-        )
-    return errors if _testmode else errors[:1]
-
-
-def check_initfile(initfile: Path, _testmode: bool = False) -> Optional[List[Failure]]:
-    "check the initfile presence and contents"
-
-    errors = []
-    if _testmode or not initfile.exists():
-        errors.append(Failure(f"no init file '{initfile}' found"))
-
-    curver = tools.get_module_var(initfile, "__version__", abort=False)
-    if _testmode or not curver:
-        errors.append(
-            Failure(
-                f"cannot find __version__ in {initfile}",
-                explain="""
-        The initfile should contain the __version__ module level variable;
-        it should be a text string in the MAJOR.MINOR.MICRO form.
-        """,
-            )
-        )
-
-    return errors if _testmode else errors[:1]
-
-
-def check_for_release(
-    repo: pygit2.Repository,
-    initfile: Path,
-    curver: Optional[str] = None,
+def error(
+    message: str,
+    explain="",
+    hint="",
+    parser: Optional[argparse.ArgumentParser] = None,
     _testmode: bool = False,
-) -> Optional[List[Failure]]:
-    from re import compile
+) -> None:
+    out = parser.format_usage().split("\n")
+    out.append(f"{parser.prog}: {message}")
+    if explain:
+        out.extend(tools.indent(explain.rstrip()).split("\n"))
 
-    regex_beta = compile(r"/?beta/(?P<ver>\d+([.]\d+)*)$")
+    if _testmode:
+        raise tools.AbortExecution(message, explain, hint)
+    else:
+        print("\n".join(out), file=sys.stderr)
+        raise SystemExit(2)
 
-    errors = []
 
-    curver = curver or tools.get_module_var(initfile, "__version__", abort=False)
-
-    matched = regex_beta.match(repo.head.shorthand)
-    thisver = matched.groupdict()["ver"] if matched else None
-
-    # check we are in a beta branch
-    if _testmode or not regex_beta.match(repo.head.shorthand):
-        errors.append(
-            Failure(
-                f"release should start from 'beta/{curver}' "
-                f"branch (currently on {repo.head.shorthand})"
+def check_initfile(error: Callable[[str, str, str], None], initfile: Path) -> None:
+    if initfile.exists():
+        curver = tools.get_module_var(initfile, "__version__", abort=False)
+        if not curver:
+            error(
+                "init file has an invalid __version__ module variable",
+                explain="""
+              An init file (eg. __init__.py) should be defined containing
+              a __version__ = "<major>.<minor>.<micro>" version
+              """,
+                hint=f"add a __version__ module variable in '{initfile}'",
             )
+    else:
+        error(
+            "no init file found",
+            explain="""
+              An init file (eg. __init__.py) should be defined containing
+              a __version__ = "<major>.<minor>.<micro>" version
+              """,
+            hint=f"add an init file in '{initfile}'",
         )
 
-    # check curver match the branch name
-    if _testmode or (thisver and thisver != curver):
-        errors.append(
-            Failure(
-                f"current branch 'beta/{curver}' doesn't match "
-                f"the initfile version {thisver}"
+
+def check_branch(
+    error: Callable[[str, str, str], None],
+    mode: str,
+    curbranch: str,
+    master: str = "master",
+):
+    # curbranch == repo.head.shorthand
+    if mode in {"release"}:
+        match = BETAEXPR.search(curbranch)
+        if not match:
+            error(
+                f"{mode} starts from a beta/N.M.O branch",
+                f"""
+                A {mode} starts from a beta/N.M.O branch, not from '{curbranch}'
+                """,
+                hint="switch to a beta/N.M.O branch",
             )
-        )
-
-    # check we aren't re-releasing
-    regex = compile("^refs/tags/")
-    tags = [r for r in repo.references if regex.match(r)]
-    if _testmode or (f"refs/tags/release/{curver}" in tags):
-        errors.append(Failure(f"tag release/{curver} present, cannot re-release"))
-
-    # check current branch is in sync with remote
-    # get all local and remote beta/ branches
-    # local_branches = {
-    #    b.rpartition("/")[2]: repo.lookup_branch(b)
-    #    for b in repo.branches.local
-    #    if regex_beta.search(b)
-    # }
-    remote_branches = {
-        b.rpartition("/")[2]: repo.lookup_branch(b, pygit2.GIT_BRANCH_REMOTE)
-        for b in repo.branches.remote
-        if regex_beta.search(b)
-    }
-
-    if _testmode or (
-        (curver in remote_branches)
-        and remote_branches[curver].target != repo.head.target
-    ):
-        target = remote_branches[curver].target if curver in remote_branches else None
-        errors.append(
-            Failure(
-                f"local and remote branches beta/{curver} are out of sync",
-                explain=f"""
-                The local branch {repo.head.shorthand} has
-                """
-                f"""different hash from remote ({repo.head.target} != {target})
+    elif mode in {"major", "minor", "micro"}:
+        # betas start from the 'master' branch
+        if curbranch != master:
+            error(
+                f"'{mode}' starts from '{master}' branch",
+                f"""
+                While generating a branch for '{mode}' we assume as starting
+                branch to be '{master}' but we are in '{curbranch}'.
+                """,
+                hint=f"""
+                Switch to the '{master}' branch or pass the --master flag
                 """,
             )
-        )
+    else:
+        raise RuntimeError(f"invalid {mode}")
 
-    return errors if _testmode else errors[:1]
+
+def check_version(
+    error: Callable[[str, str, str], None],
+    mode: str,
+    initfile: Path,
+    local_branches: List[str],
+    remote_branches: Dict[str, List[str]],
+    tags: List[str],
+    master: str,
+):
+    curver = tools.get_module_var(initfile, "__version__", abort=False)
+    nextver = tools.bump_version(curver, mode)
+
+    if mode in {"release"}:
+        if f"release/{curver}" in tags:
+            error(
+                "release already prsent",
+                f"""
+                A release 'release/{curver}' tag is present for the current branch
+                """,
+                hint="""
+                check the __version__ is correct
+                """,
+            )
+    else:
+        if f"beta/{nextver}" in local_branches:
+            error(
+                f"next version branch 'beta/{nextver}' already present"
+                " in local branches",
+                f"""
+                when creating a new branch 'beta/{nextver}' a local branch
+                with that name has been found already
+                """,
+                hint=f"""
+                change the version from '{curver}' in the '{master}' branch initfile
+                """,
+            )
+        for origin, branches in remote_branches.items():
+            if f"beta/{nextver}" in branches:
+                error(
+                    f"next version branch 'beta/{nextver}' already present in"
+                    " remote branches",
+                    f"""
+                when creating a new branch 'beta/{nextver}' a remote branch with
+                that name has been found already in '{origin}'
+                """,
+                    hint=f"""
+                make sure the '{curver}' in the initfile in '{master}' branch is correct
+                """,
+                )
