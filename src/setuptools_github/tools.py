@@ -328,5 +328,6 @@ class GitWrapper:
         lines = f"REPO: {self.workdir}"
         lines += "\n [status]\n" + indent(self(["status"]))
         lines += "\n [branch]\n" + indent(self(["branch", "-avv"]))
+        lines += "\n [tags]\n" + indent(self(["tag", "-l"]))
         lines += "\n [remote]\n" + indent(self(["remote", "-v"]))
         print(lines)
