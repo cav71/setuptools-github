@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import pathlib
 import shutil
@@ -96,96 +97,100 @@ def scripter(request, tmp_path_factory, datadir):
 
 
 @pytest.fixture(scope="function")
-def git_project_factory(tmp_path):
-    # on windows we need to add paths with / separator
-    def _2p(path):
-        return str(path).replace("\\", "/")
+def git_project_factory(request, tmp_path):
+    from pathlib import Path
 
-    class Project:
-        def debug(self, *args):
-            if args in {tuple(), ("all",)}:
-                cmds = [
-                    [
-                        "status",
-                    ],
-                    [
-                        "branch",
-                        "-av",
-                    ],
-                    [
-                        "remote",
-                        "-v",
-                    ],
-                    [
-                        "log",
-                    ],
-                ]
-            else:
-                cmds = [[str(a) for a in args]]
-            for cmd in cmds:
-                out = subprocess.check_output(
-                    ["git", *cmd], cwd=self.workdir, encoding="utf-8"
+    def indent(txt, pre=" " * 2):
+        "simple text indentation"
+
+        from textwrap import dedent
+
+        txt = dedent(txt)
+        if txt.endswith("\n"):
+            last_eol = "\n"
+            txt = txt[:-1]
+        else:
+            last_eol = ""
+
+        return pre + txt.replace("\n", "\n" + pre) + last_eol
+
+    class GitWrapper:
+        EXE = "git"
+
+        def __init__(self, workdir: Path, exe=None):
+            self.workdir = Path(workdir)
+            self.exe = exe or self.EXE
+
+        def init(self, clone=None, force=False):
+            from shutil import rmtree
+
+            assert isinstance(clone, (None.__class__, GitWrapper))
+
+            if force:
+                rmtree(self.workdir, ignore_errors=True)
+
+            if clone:
+                self(
+                    ["clone", clone.workdir.absolute(), self.workdir.absolute()],
                 )
-                print(out)
+            else:
+                self.workdir.mkdir(parents=True, exist_ok=True)
+                self("init")
+            return self
 
-        def __init__(self, workdir, repo=None, sig=None):
-            self.workdir = workdir
-            self.repo = repo
-            self.sig = sig
+        def __call__(self, cmd, *args):
+            cmd = [cmd] if isinstance(cmd, str) else cmd[:]
+            if cmd[0].startswith(">"):
+                return getattr(self, cmd[0][1:])(*args)
+            else:
+                assert not args, "cannot pass arguments with > shortcut"
+            cmd = [
+                self.exe,
+                *(
+                    []
+                    if cmd[0] == "clone"
+                    else [
+                        "--git-dir",
+                        self.workdir.absolute() / ".git",
+                        "--work-tree",
+                        self.workdir.absolute(),
+                    ]
+                ),
+                *cmd,
+            ]
+            txt = subprocess.check_output([str(c) for c in cmd], encoding="utf-8")
+            return txt
 
+        def __truediv__(self, other):
+            return self.workdir.absolute() / other
+
+        def dump(self):
+            lines = f"REPO: {self.workdir}"
+            lines += "\n [status]\n" + indent(self(["status"]))
+            lines += "\n [branch]\n" + indent(self(["branch", "-avv"]))
+            lines += "\n [tags]\n" + indent(self(["tag", "-l"]))
+            lines += "\n [remote]\n" + indent(self(["remote", "-v"]))
+            print(lines)
+
+    # from setuptools_github.tools import GitWrapper
+
+    class Project(GitWrapper):
         @property
         def initfile(self):
             return self.workdir / "src" / "__init__.py"
 
         @property
         def version(self):
-            return self.initfile.read_text().partition("=")[2].strip().strip('"')
-
-        @property
-        def branch(self):
-            return self.repo.head
-
-        def commit(self, paths, message):
-            from pathlib import Path
-            from pygit2 import GitError
-
-            ref = "HEAD"
-            with contextlib.suppress(GitError):
-                ref = self.repo.head.name
-            parents = []
-            with contextlib.suppress(GitError):
-                parents = [self.repo.head.target]
-            index = self.repo.index
-            for path in [Path(paths)] if isinstance(paths, (str, Path)) else paths:
-                index.add(_2p(path.relative_to(self.workdir)))
-            index.write()
-            return self.repo.create_commit(
-                ref, self.sig, self.sig, message, index.write_tree(), parents
+            return (
+                self.initfile.read_text()
+                .partition("=")[2]
+                .strip()
+                .replace("'", '"')
+                .strip('"')
             )
 
-        def create(self, version, workdir=None, force=False, remote=True):
-            from shutil import rmtree
-            from pygit2 import init_repository, Repository, Signature
-
-            self.workdir = workdir or self.workdir
-            if force:
-                rmtree(self.workdir, ignore_errors=True)
-
-            init_repository(self.workdir)
-            self.repo = repo = Repository(self.workdir)
-            repo.config["user.name"] = "myusername"
-            repo.config["user.email"] = "myemail"
-
-            if not self.sig:
-                self.sig = Signature(
-                    repo.config["user.name"], repo.config["user.email"]
-                )
-
-            if remote:
-                self.repo.remotes.create(
-                    *(("origin", "no-url", "origin") if remote is True else remote)
-                )
-
+        def create(self, version=None, clone=None, force=False):
+            self.init(clone=clone, force=force)
             if version is not None:
                 self.initfile.parent.mkdir(parents=True, exist_ok=True)
                 self.initfile.write_text(
@@ -196,36 +201,42 @@ def git_project_factory(tmp_path):
                 self.commit([self.initfile], "initial commit")
             return self
 
-        def create_branch(self, name, commit=None, remote=False, exist_ok=False):
-            commit = commit or self.repo.get(self.repo.head.target)
-            target = self.repo.branches.remote if remote else self.repo.branches.local
-            if name in target and exist_ok:
-                branch = target[name]
-            else:
-                if remote:
-                    self.repo.remotes.create(
-                        name, "no-url" if remote is True else remote
-                    )
-                    return self.repo.references.create(
-                        f"refs/remotes/{name}", commit.oid
-                    )
-                branch = target.create(name, commit)
-            return branch
+        def commit(self, paths, message):
+            paths = [paths] if isinstance(paths, (Path, str)) else paths
+            self(["add", *paths])
+            self(["commit", "-m", message, *paths])
 
-        def checkout(self, *, branch=None, exist_ok=False):
-            if branch:
-                branch_object = self.create_branch(branch, exist_ok=exist_ok)
-                self.repo.checkout(branch_object)
-            else:
-                raise NotImplementedError("operation not implemented")
+        def branch(self, name=None, origin="master"):
+            if not name:
+                return self(["branch", "--show-current"]).strip()
+            assert origin or origin is None
+            old = self.branch()
+            self(["checkout", "-b", name, "--track", origin])
+            return old
 
-        def tag(self, name, ref=None):
-            head = ref or self.repo.head
-            return self.repo.references.create(
-                f"refs/tags/{name.lstrip('/')}", head.target
-            )
+        def branches(self):
+            BETAEXPR = re.compile(r"/beta/(?P<ver>\d+([.]\d+)*)")
+            branches = [
+                name
+                for name in self(["branch", "-a", "--format", "%(refname)"]).split()
+                if BETAEXPR.search(name)
+            ]
+            n = len("refs/heads/")
+            local_branches = [
+                name[n:] for name in branches if name.startswith("refs/heads/")
+            ]
+            remote_branches = {}
+            n = len("refs/remotes/")
+            for name in branches:
+                if not name.startswith("refs/remotes/"):
+                    continue
+                origin, _, name = name[n:].partition("/")
+                if origin not in remote_branches:
+                    remote_branches[origin] = []
+                remote_branches[origin].append(name)
+            return local_branches, remote_branches
 
-    return lambda subdir: Project(tmp_path / subdir)
+    return lambda subdir="": Project(tmp_path / (subdir or request.node.name))
 
 
 def pytest_configure(config):
