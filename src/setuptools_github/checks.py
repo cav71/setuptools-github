@@ -1,9 +1,8 @@
 import re
-import sys
 from pathlib import Path
-from typing import List, Optional, Callable, Dict, TypeVar
-from mypy_extensions import Arg, DefaultArg, DefaultNamedArg
-import argparse
+from typing import List, Callable, Dict, TypeVar
+
+from mypy_extensions import Arg, DefaultArg
 
 from . import tools
 
@@ -13,57 +12,66 @@ ErrorFunctionType = TypeVar(
     "ErrorFunctionType",
     bound=Callable[
         [
-            Arg(str, "message"),
-            DefaultArg(str, "explain"),
-            DefaultArg(str, "hint"),
-            DefaultArg(Optional[argparse.ArgumentParser], "parser"),
-            DefaultArg(bool, "_testmode"),
+            Arg(str, "message"),  # noqa: undefined-name
+            DefaultArg(str, "explain"),  # noqa: undefined-name
+            DefaultArg(str, "hint"),  # noqa: undefined-name
         ],
         None,
     ],
 )
 
+# TODO check for local modifications
 
-def error(
-    message: str,
-    explain="",
-    hint="",
-    parser: Optional[argparse.ArgumentParser] = None,
-    _testmode: bool = False,
-) -> None:
-    if parser:
-        out = parser.format_usage().split("\n")
-        out.append(f"{parser.prog}: {message}")
-    if explain:
-        out.extend(tools.indent(explain.rstrip()).split("\n"))
 
-    if _testmode:
-        raise tools.AbortExecution(message, explain, hint)
-    else:
-        print("\n".join(out), file=sys.stderr)
-        raise SystemExit(2)
+def check_repo_mods(error: ErrorFunctionType, workdir: Path, initfile: Path):
+    from pygit2 import Repository, GIT_STATUS_WT_NEW, GIT_STATUS_IGNORED  # type: ignore
+
+    repo = Repository(workdir)
+
+    unstracked = {p for p, f in repo.status().items() if f & GIT_STATUS_WT_NEW}
+    if str(initfile.relative_to(workdir)) in unstracked:
+        error(
+            "init file is not tracked",
+            explain="""
+                  An init file (eg. __init__.py) should be defined containing
+                  a __version__ = "<major>.<minor>.<micro>" version
+                  """,
+            hint=f"create and git add an init file in '{initfile}'",
+        )
+
+    def ignore(f):
+        return (f & GIT_STATUS_WT_NEW) or (f & GIT_STATUS_IGNORED)
+
+    modified = {p for p, f in repo.status().items() if not ignore(f)}
+    if str(initfile.relative_to(workdir)) in modified:
+        error(
+            "init file has local modifications",
+            explain="""
+                  An init file (eg. __init__.py) should be git tracked and not modified
+                  """,
+            hint=f"git revert or commit init file changes in '{initfile}'",
+        )
 
 
 def check_initfile(error: ErrorFunctionType, initfile: Path) -> None:
-    if initfile.exists():
-        curver = tools.get_module_var(initfile, "__version__", abort=False)
-        if not curver:
-            error(
-                "init file has an invalid __version__ module variable",
-                explain="""
-              An init file (eg. __init__.py) should be defined containing
-              a __version__ = "<major>.<minor>.<micro>" version
-              """,
-                hint=f"add a __version__ module variable in '{initfile}'",
-            )
-    else:
+    if not initfile.exists():
         error(
             "no init file found",
             explain="""
-              An init file (eg. __init__.py) should be defined containing
-              a __version__ = "<major>.<minor>.<micro>" version
-              """,
+                  An init file (eg. __init__.py) should be defined containing
+                  a __version__ = "<major>.<minor>.<micro>" version
+                  """,
             hint=f"add an init file in '{initfile}'",
+        )
+    curver = tools.get_module_var(initfile, "__version__", abort=False)
+    if not curver:
+        error(
+            "init file has an invalid __version__ module variable",
+            explain="""
+          An init file (eg. __init__.py) should be defined containing
+          a __version__ = "<major>.<minor>.<micro>" version
+          """,
+            hint=f"add a __version__ module variable in '{initfile}'",
         )
 
 
@@ -105,6 +113,7 @@ def check_version(
     error: ErrorFunctionType,
     mode: str,
     initfile: Path,
+    branch: str,
     local_branches: List[str],
     remote_branches: Dict[str, List[str]],
     tags: List[str],
@@ -114,6 +123,18 @@ def check_version(
     nextver = tools.bump_version(curver or "", mode)
 
     if mode in {"release"}:
+        if branch != f"beta/{curver}":
+            error(
+                f"wrong version '{curver}' from initfile",
+                f"""
+                The current branch '{branch}' has a version '{curver}' in
+                the initfile '{initfile}'.
+                """,
+                hint="""
+                fix the __version__ variable in the initfile
+                """,
+            )
+
         if f"release/{curver}" in tags:
             error(
                 "release already prsent",
