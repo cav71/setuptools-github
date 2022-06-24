@@ -118,11 +118,14 @@ def git_project_factory(request, tmp_path):
         EXE = "git"
         KEEPFILE = ".keep"
 
-        def __init__(self, workdir: Path, exe=None):
+        def __init__(
+            self, workdir: Path, exe=None, identity=("First Last", "user@email")
+        ):
             self.workdir = Path(workdir)
             self.exe = exe or self.EXE
+            self.identity = identity
 
-        def init(self, clone=None, force=False, keepfile=True):
+        def init(self, clone=None, force=False, keepfile=True, identity=None):
             from shutil import rmtree
 
             assert isinstance(clone, (type(None), GitWrapper))
@@ -137,8 +140,6 @@ def git_project_factory(request, tmp_path):
             else:
                 self.workdir.mkdir(parents=True, exist_ok=True)
                 self("init")
-                self(["config", "user.name", "a user name"])
-                self(["config", "user.email", "user@email"])
                 if keepfile is True:
                     keepfile = self.workdir / self.KEEPFILE
                 if keepfile:
@@ -146,6 +147,11 @@ def git_project_factory(request, tmp_path):
                     self(["add", keepfile])
                     self(["commit", "-m", "initial", keepfile])
                     # self(["checkout", "master"])
+            identity = self.identity if identity is None else identity
+            if identity:
+                self(["config", "user.name", identity[0]])
+                self(["config", "user.email", identity[1]])
+
             return self
 
         def __call__(self, cmd, *args):
