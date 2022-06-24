@@ -132,6 +132,7 @@ def git_project_factory(request, tmp_path):
 
             if force:
                 rmtree(self.workdir, ignore_errors=True)
+            identity = self.identity if identity is None else identity
 
             if clone:
                 self(
@@ -153,7 +154,6 @@ def git_project_factory(request, tmp_path):
                     self(["add", keepfile])
                     self(["commit", "-m", "initial", keepfile])
                     # self(["checkout", "master"])
-            identity = self.identity if identity is None else identity
 
             return self
 
