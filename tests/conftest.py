@@ -137,9 +137,15 @@ def git_project_factory(request, tmp_path):
                 self(
                     ["clone", clone.workdir.absolute(), self.workdir.absolute()],
                 )
+                if identity:
+                    self(["config", "user.name", identity[0]])
+                    self(["config", "user.email", identity[1]])
             else:
                 self.workdir.mkdir(parents=True, exist_ok=True)
                 self("init")
+                if identity:
+                    self(["config", "user.name", identity[0]])
+                    self(["config", "user.email", identity[1]])
                 if keepfile is True:
                     keepfile = self.workdir / self.KEEPFILE
                 if keepfile:
@@ -148,9 +154,6 @@ def git_project_factory(request, tmp_path):
                     self(["commit", "-m", "initial", keepfile])
                     # self(["checkout", "master"])
             identity = self.identity if identity is None else identity
-            if identity:
-                self(["config", "user.name", identity[0]])
-                self(["config", "user.email", identity[1]])
 
             return self
 
