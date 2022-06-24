@@ -276,12 +276,13 @@ def bump_version(version: str, mode: str) -> str:
 
 class GitWrapper:
     EXE: str = "git"
+    KEEPFILE = ".keep"
 
     def __init__(self, workdir: Union[Path, str], exe: Optional[str] = None):
         self.workdir = Path(workdir)
         self.exe = exe or self.EXE
 
-    def init(self, clone=None, force=False):
+    def init(self, clone=None, force=False, keepfile=True):
         from shutil import rmtree
 
         assert isinstance(clone, (type(None), GitWrapper))
@@ -296,6 +297,14 @@ class GitWrapper:
         else:
             self.workdir.mkdir(parents=True, exist_ok=True)
             self("init")
+            self(["config", "user.name", "a user name"])
+            self(["config", "user.email", "user@email"])
+            if keepfile is True:
+                keepfile = self.workdir / self.KEEPFILE
+            if keepfile:
+                keepfile.write_text("# dummy file to create the master branch")
+                self(["add", keepfile])
+                self(["commit", "-m", "initial", keepfile])
         return self
 
     def __call__(self, cmd: Union[List[Any], Any], *args) -> str:

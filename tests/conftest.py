@@ -125,7 +125,7 @@ def git_project_factory(request, tmp_path):
         def init(self, clone=None, force=False, keepfile=True):
             from shutil import rmtree
 
-            assert isinstance(clone, (None.__class__, GitWrapper))
+            assert isinstance(clone, (type(None), GitWrapper))
 
             if force:
                 rmtree(self.workdir, ignore_errors=True)
@@ -149,27 +149,24 @@ def git_project_factory(request, tmp_path):
             return self
 
         def __call__(self, cmd, *args):
-            cmd = [cmd] if isinstance(cmd, str) else cmd[:]
-            if cmd[0].startswith(">"):
-                return getattr(self, cmd[0][1:])(*args)
+            arguments = []
+            if isinstance(cmd, str):
+                arguments.append(cmd)
             else:
-                assert not args, "cannot pass arguments with > shortcut"
-            cmd = [
-                self.exe,
-                *(
-                    []
-                    if cmd[0] == "clone"
-                    else [
-                        "--git-dir",
-                        self.workdir.absolute() / ".git",
-                        "--work-tree",
-                        self.workdir.absolute(),
-                    ]
-                ),
-                *cmd,
-            ]
-            txt = subprocess.check_output([str(c) for c in cmd], encoding="utf-8")
-            return txt
+                arguments.extend(cmd[:])
+
+            if str(arguments[0]) != "clone":
+                arguments = [
+                    self.exe,
+                    "--git-dir",
+                    str(self.workdir.absolute() / ".git"),
+                    "--work-tree",
+                    str(self.workdir.absolute()),
+                    *[str(a) for a in arguments],
+                ]
+            else:
+                arguments = [self.exe, *[str(a) for a in arguments]]
+            return subprocess.check_output(arguments, encoding="utf-8")
 
         def __truediv__(self, other):
             return self.workdir.absolute() / other
