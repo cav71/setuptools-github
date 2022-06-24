@@ -41,8 +41,11 @@ hint:
 
 def test_check_branch(git_project_factory):
     project = git_project_factory().create("0.0.3")
-
     assert project.branch() == "master"
+
+    pytest.raises(
+        RuntimeError, checks.check_branch, error, "no-value", project.branch()
+    )
 
     # switch branch
     old = project.branch("abc")
