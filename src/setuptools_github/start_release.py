@@ -1,9 +1,10 @@
 import argparse
 import sys
 import logging
+from pathlib import Path
 import functools
 import re
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Dict, Any
 
 import pygit2  # type: ignore
 
@@ -14,27 +15,7 @@ from setuptools_github import checks
 log = logging.getLogger(__name__)
 
 
-def error(
-    message: str,
-    explain: str = "",
-    hint: str = "",
-    parser: Optional[argparse.ArgumentParser] = None,
-    testmode: bool = False,
-):
-    if parser:
-        out = parser.format_usage().split("\n")
-        out.append(f"{parser.prog}: {message}")
-    if explain:
-        out.extend(tools.indent(explain.rstrip()).split("\n"))
-
-    if testmode:
-        raise tools.AbortExecution(message, explain, hint)
-    else:
-        print("\n".join(out), file=sys.stderr)
-        raise SystemExit(2)
-
-
-def parse_args(args: Optional[str] = None, testmode: bool = False):
+def parse_args(args: Optional[str] = None, testmode: bool = False) -> Dict[str, Any]:
     """parses args from the command line
 
     Args:
@@ -49,7 +30,9 @@ def parse_args(args: Optional[str] = None, testmode: bool = False):
     ):
         pass
 
-    parser = argparse.ArgumentParser(formatter_class=F, description=__doc__)
+    parser = argparse.ArgumentParser(
+        formatter_class=F, description=__doc__, prog="AAAA"
+    )
 
     parser.add_argument("-n", "--dry-run", dest="dryrun", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -69,8 +52,6 @@ def parse_args(args: Optional[str] = None, testmode: bool = False):
     parser.add_argument("initfile", metavar="__init__.py", type=Path)
 
     options = parser.parse_args(args)
-
-    # options.checks = not options.no_checks
 
     def error(message, explain="", hint="", parser=None, testmode=False):
         out = []
@@ -108,37 +89,6 @@ def parse_args(args: Optional[str] = None, testmode: bool = False):
     return options.__dict__
 
 
-# def check_remotes(
-#     repo: pygit2.Repository,
-#     dryrun: bool = False,
-#     remote: Optional[str] = None,
-#     error: Optional[Callable[[str], Any]] = None,
-# ):
-#     "given a pygit2 Repo instance check it has a single remote"
-#
-#     if not error:
-#
-#         def errorfn(msg):
-#             raise RuntimeError(msg)
-#
-#         error = errorfn
-#
-#     # check repo has a single remote
-#     remotes = {remote.name for remote in repo.remotes}
-#     if len(remotes) > 1 and not remote:
-#         (log.error if dryrun else error)(
-#             f"multiple remotes defined: {', '.join(remotes)}"
-#         )
-#     if remote and remote not in remotes:
-#         error(f"requested remote={remote} but found {', '.join(remotes)}")
-#         (log.error if dryrun else error)(
-#             f"user select remote={remote} but only found {', '.join(remotes)}"
-#         )
-#     remote = remote or (remotes or [None]).pop()
-#     log.debug("current remote '%s'", remote)
-#     return remote
-#
-#
 def extract_beta_branches(
     repo: pygit2.Repository,
 ) -> Tuple[List[str], Dict[str, List[str]], List[str]]:
@@ -174,66 +124,15 @@ def extract_beta_branches(
     return local_branches, remote_branches, tags
 
 
-# def repo_checks(
-#     repo: pygit2.Repository,
-#     remote: Optional[str],
-#     error: Callable[[str], Any],
-#     dryrun: bool,
-#     force: bool,
-#     curver: str,
-#     mode: str,
-# ):
-#     # check we are on master
-#     current = repo.head.shorthand
-#     log.debug("current branch %s", current)
-#     if current != "master":
-#         (log.error if dryrun else error)(  # type: ignore
-#             f"current branch is '{current}' but this
-#             script runs on the 'master' branch"
-#         )
-#
-#     # check we have no uncommitted changes
-#     def ignore(f):
-#         return (f & pygit2.GIT_STATUS_WT_NEW) or (f & pygit2.GIT_STATUS_IGNORED)
-#
-#     modified = {p for p, f in repo.status().items() if not ignore(f)}
-#     if modified:
-#         (log.error if (dryrun or force) else error)(  # type: ignore
-#             "local modification staged for commit, use -f|--force to skip check"
-#         )
-#
-#     # check the current version has a beta/<curver> branch
-#     remote_branches = extract_beta_branches(repo.branches.remote, remote=remote)
-#     local_branches = extract_beta_branches(repo.branches.local)
-#
-#     if not any(remote_branches | local_branches):
-#         # no beta/X.Y.Z branches, we start fresh
-#         return curver
-#
-#     is_in_local = bool([b for b in local_branches if b.endswith(f"beta/{curver}")])
-#     is_in_remote = bool([b for b in remote_branches if b.endswith(f"beta/{curver}")])
-#     if not (is_in_local or is_in_remote):
-#         (log.error if (dryrun or force) else error)(  # type: ignore
-#             f"cannot find 'beta/{curver}' branch in the local or remote branches"
-#         )
-#
-#     newver = "123"  # bump_version(curver, mode)
-#     is_in_local = bool([b for b in local_branches if b.endswith(f"beta/{newver}")])
-#     is_in_remote = bool([b for b in remote_branches if b.endswith(f"beta/{newver}")])
-#     if is_in_local:
-#         (log.error if (dryrun or force) else error)(  # type: ignore
-#             f"found 'beta/{newver}' branch in the local branches"
-#         )
-#     if is_in_remote:
-#         (log.error if (dryrun or force) else error)(  # type: ignore
-#             f"found 'beta/{newver}' branch in the remote branches"
-#         )
-#
-#     return newver
-
-
-def beta(repo, curver, mode, initfile, workdir, dryrun, error):
-
+def beta(
+    repo: pygit2.Repository,
+    curver: str,
+    mode: str,
+    initfile: Path,
+    workdir: Path,
+    dryrun: bool,
+    error: checks.ErrorFunctionType,
+) -> None:
     newver = tools.bump_version(curver or "", mode)
     log.info("beta release %s -> %s", curver, newver)
 
@@ -284,71 +183,42 @@ def beta(repo, curver, mode, initfile, workdir, dryrun, error):
         repo.branches.local.create(newbranch, commit)
         ref = repo.lookup_reference(repo.lookup_branch(newbranch).name)
         repo.checkout(ref)
-    #
-    # return newbranch
 
 
-def release(repo, curver, mode, initfile, workdir, dryrun, error):
+def release(
+    repo: pygit2.Repository,
+    curver: str,
+    mode: str,
+    initfile: Path,
+    workdir: Path,
+    dryrun: bool,
+    error: checks.ErrorFunctionType,
+) -> None:
     log.info("releasing %s", curver)
 
     local_branches, remote_branches, tags = extract_beta_branches(repo)
 
-    ref = repo.lookup_reference(repo.lookup_branch(local_branches[curver]).name)
-    raise RuntimeError(f"xxx {type(ref)} / {ref}")
-    pass
+    ref = None
+    if f"beta/{curver}" in local_branches:
+        ref = repo.lookup_reference(f"refs/heads/beta/{curver}")
+    else:
+        # TODO check local and remote branches aren't out of sync
+        for origin, branches in remote_branches.items():
+            if f"beta/{curver}" not in branches:
+                continue
 
-    #
-    # # check we aren't regenerating a tag
-    # regex = re.compile("^refs/tags/")
-    # tags = [r for r in repo.references if regex.match(r)]
-    # if f"refs/tags/release/{curver}" in tags:
-    #     error(f"there's already a {curver} tag refs/tags/release/{curver}")
-    #
-    # local_branches = {
-    #     b.rpartition("/")[2]: b for b in repo.branches.local if b == f"beta/{curver}"
-    # }
-    # remote_branches = {
-    #     b.rpartition("/")[2]: b
-    #     for b in repo.branches.remote
-    #     if b.endswith(f"/beta/{curver}")
-    # }
-    #
-    # # 4 cases
-    # #   1. curver is not either in local and remote
-    # if curver not in (set(local_branches) | set(remote_branches)):
-    #     error(
-    #         f"ncurrent project has version {curver} but there aren't"
-    #         f" any beta/{curver} branch local or remote",
-    #         explain="""
-    #     Tried to create a release for {curver} but no beta/{curver} branch
-    #     has not beeing found.
-    #     """,
-    #     )
-    # #   2. curver is in remote and local branches
-    # elif curver in (set(local_branches) & set(remote_branches)):
-    #     # check the two branches are in sync or bail out
-    #     raise RuntimeError("NOT DONE YET")
-    # #   3. curver is in remote only
-    # elif curver not in local_branches:
-    #     # TODO create local branch from remote
-    #     raise RuntimeError("NOT DONE YET")
-    #     ref = repo.lookup_reference(repo.lookup_branch(remote_branches[curver]))
-    #     repo.checkout(ref)
-    # #   4. curver is local only
-    # elif curver not in remote_branches:
-    #     # check master is in sync with local branch (unless is --force)
-    #     ref = repo.lookup_reference(repo.lookup_branch(local_branches[curver]).name)
-    #     mref = repo.lookup_reference(repo.lookup_branch("master").name)
-    #     if not force and (ref.target != mref.target):
-    #         error(
-    #             f"local '{local_branches[curver]}' is not in sync with master",
-    #             explain="""
-    #         Either you need to pull master into '{local_branches[curver]}' or
-    #         (if it is ok) you can use the --force flag.:
-    #         """,
-    #         )
-    # repo.checkout(ref)
-    # repo.references.create(f"refs/tags/release/{curver}", ref.target)
+            ref = repo.lookup_reference(f"refs/remotes/{origin}/beta/{curver}")
+            break
+
+    if not ref:
+        error(
+            "cannot find a suitable branc/ref",
+            """cannot find a reference for beta/{curver}
+              """,
+        )
+    elif not dryrun:
+        repo.checkout(ref)
+        repo.references.create(f"refs/tags/release/{curver}", ref.target)
 
 
 def run(mode, initfile, workdir, dryrun, error, master):
