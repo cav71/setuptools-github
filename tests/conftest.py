@@ -116,12 +116,13 @@ def git_project_factory(request, tmp_path):
 
     class GitWrapper:
         EXE = "git"
+        KEEPFILE = ".keep"
 
         def __init__(self, workdir: Path, exe=None):
             self.workdir = Path(workdir)
             self.exe = exe or self.EXE
 
-        def init(self, clone=None, force=False):
+        def init(self, clone=None, force=False, keepfile=True):
             from shutil import rmtree
 
             assert isinstance(clone, (None.__class__, GitWrapper))
@@ -136,6 +137,13 @@ def git_project_factory(request, tmp_path):
             else:
                 self.workdir.mkdir(parents=True, exist_ok=True)
                 self("init")
+                if keepfile is True:
+                    keepfile = self.workdir / self.KEEPFILE
+                if keepfile:
+                    keepfile.write_text("# dummy file to create the master branch")
+                    self(["add", keepfile])
+                    self(["commit", "-m", "initial", keepfile])
+                    # self(["checkout", "master"])
             return self
 
         def __call__(self, cmd, *args):

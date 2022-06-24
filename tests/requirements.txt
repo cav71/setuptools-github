@@ -4,6 +4,7 @@ jinja2
 lxml
 mock
 mypy
+mypy-extensions
 pre-commit
 pyfakefs
 pygit2
