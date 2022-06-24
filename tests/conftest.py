@@ -137,6 +137,8 @@ def git_project_factory(request, tmp_path):
             else:
                 self.workdir.mkdir(parents=True, exist_ok=True)
                 self("init")
+                self(["config", "user.name", "a user name"])
+                self(["config", "user.email", "user@email"])
                 if keepfile is True:
                     keepfile = self.workdir / self.KEEPFILE
                 if keepfile:
