@@ -135,8 +135,11 @@ def git_project_factory(request, tmp_path):
             identity = self.identity if identity is None else identity
 
             if clone:
+                srcpath = (
+                    clone.workdir if isinstance(clone, GitWrapper) else Path(clone)
+                )
                 self(
-                    ["clone", clone.workdir.absolute(), self.workdir.absolute()],
+                    ["clone", srcpath.absolute(), self.workdir.absolute()],
                 )
                 if identity:
                     self(["config", "user.name", identity[0]])
@@ -180,13 +183,13 @@ def git_project_factory(request, tmp_path):
         def __truediv__(self, other):
             return self.workdir.absolute() / other
 
-        def dump(self):
+        def dump(self, fp=sys.stdout):
             lines = f"REPO: {self.workdir}"
             lines += "\n [status]\n" + indent(self(["status"]))
             lines += "\n [branch]\n" + indent(self(["branch", "-avv"]))
             lines += "\n [tags]\n" + indent(self(["tag", "-l"]))
             lines += "\n [remote]\n" + indent(self(["remote", "-v"]))
-            print(lines)
+            print(lines, file=fp)
 
     # from setuptools_github.tools import GitWrapper
 
