@@ -202,7 +202,10 @@ def test_start_cli_help(cli):
     assert (cli.release.called, cli.beta.called) == (False, False)
 
     def s(txt):
-        return re.sub(r"\s(\s*)", " ", txt.strip())
+        result = re.sub(r"\s(\s*)", " ", txt.strip())
+        if ".py optional arguments:" in result:
+            result = result.replace(".py optional arguments:", ".py options:")
+        return result
 
     assert s(cli._print_message.call_args.args[0]) == s(
         """
