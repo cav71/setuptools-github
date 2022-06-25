@@ -224,7 +224,7 @@ def git_project_factory(request, tmp_path):
 
         def branch(self, name=None, origin="master"):
             if not name:
-                return self(["branch", "--show-current"]).strip()
+                return self(["rev-parse", "--abbrev-ref", "HEAD"]).strip()
             assert origin or origin is None
             old = self.branch()
             self(["checkout", "-b", name, "--track", origin])

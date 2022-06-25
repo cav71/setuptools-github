@@ -288,4 +288,4 @@ def test_gitwrapper(tmp_path):
     path.write_text("hello")
     repo(["add", path])
     repo(["commit", "-m", "initial", path])
-    assert repo(["branch", "--show-current"]).strip() == "master"
+    assert repo(["rev-parse", "--abbrev-ref", "HEAD"]).strip() == "master"

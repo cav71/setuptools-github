@@ -194,7 +194,6 @@ def test_start_release_invalid_version(cli, git_project_factory):
     assert exc.message == "wrong version '0.0.0' from initfile"
 
 
-@pytest.mark.skipif(True, reason="not-working-in-github")
 def test_start_cli_help(cli):
     "test the --help flag to the cli"
     sr.parse_args(["--help"], testmode=True)
