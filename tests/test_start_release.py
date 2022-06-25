@@ -207,7 +207,7 @@ def test_start_cli_help(cli):
             result = result.replace(".py optional arguments:", ".py options:")
         return result
 
-    assert s(cli._print_message.call_args.args[0]) == s(
+    assert s(cli._print_message.call_args[0][0]) == s(
         """
 usage: AAAA [-h] [-n] [-v] [--master MASTER] [-w WORKDIR]
                             {micro,minor,major,release} __init__.py
