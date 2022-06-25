@@ -20,16 +20,15 @@ ErrorFunctionType = TypeVar(
     ],
 )
 
-# TODO check for local modifications
-
 
 def check_repo_mods(error: ErrorFunctionType, workdir: Path, initfile: Path):
     from pygit2 import Repository, GIT_STATUS_WT_NEW, GIT_STATUS_IGNORED  # type: ignore
 
     repo = Repository(workdir)
 
+    rel_initfile = str(initfile.relative_to(workdir)).replace("\\", "/")
     unstracked = {p for p, f in repo.status().items() if f & GIT_STATUS_WT_NEW}
-    if str(initfile.relative_to(workdir)) in unstracked:
+    if rel_initfile in unstracked:
         error(
             "init file is not tracked",
             explain="""
@@ -43,7 +42,7 @@ def check_repo_mods(error: ErrorFunctionType, workdir: Path, initfile: Path):
         return (f & GIT_STATUS_WT_NEW) or (f & GIT_STATUS_IGNORED)
 
     modified = {p for p, f in repo.status().items() if not ignore(f)}
-    if str(initfile.relative_to(workdir)) in modified:
+    if rel_initfile in modified:
         error(
             "init file has local modifications",
             explain="""
