@@ -279,5 +279,9 @@ def run(mode, initfile, workdir, dryrun, error, master):
     )
 
 
-if __name__ == "__main__":
+def main():
     run(**parse_args())
+
+
+if __name__ == "__main__":
+    main()
