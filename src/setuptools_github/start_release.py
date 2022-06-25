@@ -212,7 +212,7 @@ def release(
 
     if not ref:
         error(
-            "cannot find a suitable branc/ref",
+            "cannot find a suitable branch/ref",
             """cannot find a reference for beta/{curver}
               """,
         )
