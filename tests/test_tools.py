@@ -1,6 +1,26 @@
+import io
 import pytest
 import itertools
 from setuptools_github import tools
+
+
+class EMatch:
+    def __init__(self, expr, invert=False):
+        from re import compile
+
+        self.expr = compile(expr)
+        self.invert = invert
+
+    def __eq__(self, actual):
+        return bool(self.expr.match(actual))
+
+    def __repr__(self):
+        return self.expr.pattern
+
+    def search(self, txt):
+        out = self.expr.search(txt)
+        return (not out) if self.invert else out
+
 
 # this is the output from ${{ toJson(github) }}
 GITHUB = {
@@ -97,6 +117,13 @@ def test_indent():
 def test_hubversion():
     "extracts from a GITHUB a (version, hash) tuple"
 
+    pytest.raises(
+        tools.InvalidGithubReference,
+        tools.hubversion,
+        {"ref": "", "run_number": "", "sha": ""},
+        "",
+    )
+
     fallbacks = [
         "123",
         "",
@@ -133,21 +160,19 @@ C = "hello"
     assert 12 == tools.get_module_var(path, "A")
     assert "hello" == tools.get_module_var(path, "C")
     pytest.raises(AssertionError, tools.get_module_var, path, "B")
+    pytest.raises(tools.MissingVariable, tools.get_module_var, path, "X1")
 
 
 def test_set_module_var_empty_file(tmp_path):
     "check if the set_module_var will create a bew file"
     path = tmp_path / "in1.txt"
 
-    path.write_text("# a fist comment line\n")
-    assert (
-        path.read_text().strip()
-        == """
-# a fist comment line
-""".strip()
-    )
-
+    assert not path.exists()
     tools.set_module_var(path, "__version__", "1.2.3")
+
+    assert path.exists()
+    path.write_text("# a fist comment line\n" + path.read_text().strip())
+
     tools.set_module_var(path, "__hash__", "4.5.6")
     assert (
         path.read_text().strip()
@@ -283,9 +308,61 @@ def test_bump_version():
 
 
 def test_gitwrapper(tmp_path):
-    repo = tools.GitWrapper(tmp_path / "wow").init()
+    repo = tools.GitWrapper(tmp_path / "wow").init(force=True)
     path = repo / "abc.txt"
     path.write_text("hello")
     repo(["add", path])
     repo(["commit", "-m", "initial", path])
     assert repo(["rev-parse", "--abbrev-ref", "HEAD"]).strip() == "master"
+
+    project = repo.clone(tmp_path / "wow-cloned", force=True)
+
+    expected = EMatch(
+        r"""
+REPO: .*
+ .status.
+  On branch master
+  Your branch is up to date with 'origin/master'.
+\s+
+  nothing to commit, working tree clean
+
+ .branch.
+  . master               \s+[0-9a-f]{7} .origin/master. initial
+    remotes/origin/HEAD  \s+-> origin/master
+    remotes/origin/master\s+[0-9a-f]{7} initial
+
+ .tags.
+\s+
+ .remote.
+  origin\s.*[(]fetch[)]
+  origin\s.*[(]push[)]
+""".strip()
+    )
+    assert project.dump(io.StringIO) == expected
+
+
+def test_gitcli(tmp_path):
+    repo = tools.GitCli(tmp_path / "wow1").init(force=True)
+    assert repo.branch() == "master"
+    assert (repo.branch(name="opla"), repo.branch()) == ("master", "opla")
+    assert repo.branches() == (["master", "opla"], {})
+
+    project = repo.clone(tmp_path / "wow1-cloned", force=True)
+    assert project.branch() == "opla"
+
+    project = repo.clone(tmp_path / "wow1-cloned", branch="master", force=True)
+    assert project.branch() == "master"
+    assert (project.branch(name="wow"), project.branch()) == ("master", "wow")
+
+    assert project.branches() == (
+        ["master", "wow"],
+        {"origin": ["HEAD", "master", "opla"]},
+    )
+    assert project.branches(EMatch("[A-Z]", True)) == (
+        ["master", "wow"],
+        {"origin": ["master", "opla"]},
+    )
+
+    path = project.workdir / "abc.txt"
+    path.write_text("hello")
+    project.commit(path, "a commit")
