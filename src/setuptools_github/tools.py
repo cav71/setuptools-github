@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import re
+import os
 import ast
 import sys
 import json
@@ -53,6 +54,17 @@ class AbortExecution(Exception):
         if self.hint:
             result.extend(["\nhint:", indent("\n" + self.hint, pre=" " * 2)[2:]])
         return "".join(result)
+
+
+def rmtree(path: Path):
+    from shutil import rmtree
+    from os import name
+    from stat import S_IWUSR
+    if name == "nt":
+        for p in path.rglob("*"):
+            p.chmod(S_IWUSR)
+    rmtree(path, ignore_errors=True)
+    assert not path.exists()
 
 
 def indent(txt: str, pre: str = " " * 2) -> str:
@@ -298,13 +310,12 @@ class GitWrapper:
         keepfile: Optional[Union[bool, Path]] = True,
         identity: Optional[Tuple[str, str]] = None,
     ) -> GitWrapper:
-        from shutil import rmtree
 
         identity = self.identity if identity is None else identity
         keepfile = self.workdir / self.KEEPFILE if keepfile is True else keepfile
 
         if force:
-            rmtree(self.workdir, ignore_errors=True)
+            rmtree(self.workdir)
         self.workdir.mkdir(parents=True, exist_ok=True if force else False)
         self("init")
 
@@ -326,14 +337,12 @@ class GitWrapper:
         exe: Optional[str] = None,
         identity: Optional[Tuple[str, str]] = None,
     ) -> GitWrapper:
-        from shutil import rmtree
-
         dest = Path(dest)
         identity = self.identity if identity is None else identity
         exe = self.exe if exe is None else exe
 
         if force:
-            rmtree(dest, ignore_errors=True)
+            rmtree(dest)
         else:
             if dest.exists():
                 raise ValueError(f"target directory present {dest}")
