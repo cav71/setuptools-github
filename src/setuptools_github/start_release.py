@@ -219,6 +219,12 @@ def release(
     elif not dryrun:
         repo.checkout(ref)
         repo.references.create(f"refs/tags/release/{curver}", ref.target)
+        print(
+            f"""
+Now run to publish:
+  git push origin release/{curver}
+"""
+        )
 
 
 def run(mode, initfile, workdir, dryrun, error, master):
@@ -256,24 +262,6 @@ def run(mode, initfile, workdir, dryrun, error, master):
 
     curver = tools.get_module_var(initfile, "__version__", abort=False)
     log.info("current version [%s]", curver)
-    return (release if mode == "release" else beta)(
-        repo, curver, mode, initfile, workdir, dryrun, error
-    )
-
-    return
-
-    # get the current version from initfile
-    curver = tools.get_module_var(initfile, "__version__", abort=False)
-    if not curver:
-        error(
-            f"cannot find __version__ in {initfile}",
-            explain="""
-        The initfile should contain the __version__ module level variable;
-        it should be a text string in the MAJOR.MINOR.MICRO form.
-        """,
-        )
-    log.info("current version [%s]", curver)
-
     return (release if mode == "release" else beta)(
         repo, curver, mode, initfile, workdir, dryrun, error
     )
