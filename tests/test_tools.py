@@ -1,25 +1,35 @@
 import io
 import pytest
 import itertools
+from pathlib import Path
 from setuptools_github import tools
 
 
-class EMatch:
-    def __init__(self, expr, invert=False):
+class REFilter:
+    def __init__(self, expr):
         from re import compile
 
         self.expr = compile(expr)
-        self.invert = invert
-
-    def __eq__(self, actual):
-        return bool(self.expr.match(actual))
 
     def __repr__(self):
         return self.expr.pattern
 
+
+class RESearch(REFilter):
+    "build an object with a .search method, useable to filter"
+
+    def __init__(self, expr, invert=False):
+        super().__init__(expr)
+        self.invert = invert
+
     def search(self, txt):
         out = self.expr.search(txt)
         return (not out) if self.invert else out
+
+
+class REMatch(REFilter):
+    def __eq__(self, actual):
+        return bool(self.expr.match(actual))
 
 
 # this is the output from ${{ toJson(github) }}
@@ -307,17 +317,72 @@ def test_bump_version():
     assert tools.bump_version("1.2.3", "release") == "1.2.3"
 
 
-def test_gitwrapper(tmp_path):
-    repo = tools.GitWrapper(tmp_path / "wow").init(force=True)
+@pytest.mark.parametrize("method", ["no-force-no-keep", "no-force-keep"])
+def test_gitwrapper_init(tmp_path, method):
+    repo = tools.GitWrapper(tmp_path / "wow")
+    assert repo.workdir == tmp_path / "wow"
+    assert not repo.workdir.exists()
+
+    def no_force_no_keep():
+        repo.init(force=False, keepfile=False)
+        assert repo.workdir.exists()
+        assert not [
+            p
+            for p in repo.workdir.rglob("*")
+            if not str(p.relative_to(repo.workdir)).startswith(".git")
+        ]
+        pytest.raises(FileExistsError, repo.init, force=False, keepfile=False)
+
+    def no_force_keep():
+        repo.init(force=False, keepfile=True)
+        assert repo.workdir.exists()
+        assert [
+            p.relative_to(repo.workdir)
+            for p in repo.workdir.rglob("*")
+            if not str(p.relative_to(repo.workdir)).startswith(".git")
+        ] == [Path(".keep")]
+        pytest.raises(FileExistsError, repo.init, force=False, keepfile=True)
+
+    locals()[method.replace("-", "_")]()
+    assert repo.workdir == tmp_path / "wow"
+    assert repo.workdir.exists()
+
+
+def test_gitwrapper_clone(tmp_path):
+    repo = tools.GitWrapper(tmp_path / "repo").init()
+    assert repo(["rev-parse", "--abbrev-ref", "HEAD"]).strip() == "master"
+
+    repo(["checkout", "-b", "a-branch"])
+    assert repo(["rev-parse", "--abbrev-ref", "HEAD"]).strip() == "a-branch"
+
+    # clone into project
+    project = repo.clone(tmp_path / "project", force=False)
+    assert project(["rev-parse", "--abbrev-ref", "HEAD"]).strip() == "a-branch"
+
+    # clone without and with the force flag
+    pytest.raises(ValueError, repo.clone, tmp_path / "project", force=False)
+    repo.clone(tmp_path / "project", force=True)
+
+    # re-clone the master branch
+    project = repo.clone(tmp_path / "project", branch="master", force=True)
+    assert project(["rev-parse", "--abbrev-ref", "HEAD"]).strip() == "master"
+
+
+def test_gitwrapper_dump(tmp_path):
+    repo = tools.GitWrapper(tmp_path / "repo2").init()
+
+    # adds a file
     path = repo / "abc.txt"
     path.write_text("hello")
     repo(["add", path])
     repo(["commit", "-m", "initial", path])
     assert repo(["rev-parse", "--abbrev-ref", "HEAD"]).strip() == "master"
 
+    # clone the project
     project = repo.clone(tmp_path / "wow-cloned", force=True)
 
-    expected = EMatch(
+    # check the output
+    expected = REMatch(
         r"""
 REPO: .*
  .status.
@@ -358,7 +423,7 @@ def test_gitcli(tmp_path):
         ["master", "wow"],
         {"origin": ["HEAD", "master", "opla"]},
     )
-    assert project.branches(EMatch("[A-Z]", True)) == (
+    assert project.branches(RESearch("[A-Z]", True)) == (
         ["master", "wow"],
         {"origin": ["master", "opla"]},
     )

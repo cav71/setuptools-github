@@ -6,10 +6,9 @@ import ast
 import sys
 import json
 import subprocess
-import typing
 
 from pathlib import Path
-from typing import Any, Union, Tuple, Optional, List, Dict
+from typing import Any, Union, Tuple, Optional, List, Dict, TextIO
 
 
 class GithubError(Exception):
@@ -293,39 +292,6 @@ class GitWrapper:
         self.exe = exe or self.EXE
         self.identity = identity
 
-    def clone(
-        self,
-        dest: Union[str, Path, GitWrapper],
-        force=False,
-        branch: Optional[str] = None,
-        identity: Optional[Tuple[str, str]] = None,
-    ) -> GitWrapper:
-        from shutil import rmtree
-
-        identity = self.identity if identity is None else identity
-        dstpath = dest.workdir if isinstance(dest, GitWrapper) else Path(dest)
-
-        if force:
-            rmtree(dstpath, ignore_errors=True)
-        self(
-            [
-                "clone",
-                *(["--branch", branch] if branch else []),
-                self.workdir.absolute(),
-                dstpath.absolute(),
-            ],
-        )
-
-        checkout = (
-            dest
-            if isinstance(dest, self.__class__)
-            else self.__class__(dstpath, self.exe, identity)
-        )
-        if identity:
-            checkout(["config", "user.name", identity[0]])
-            checkout(["config", "user.email", identity[1]])
-        return checkout
-
     def init(
         self,
         force: bool = False,
@@ -339,7 +305,7 @@ class GitWrapper:
 
         if force:
             rmtree(self.workdir, ignore_errors=True)
-        self.workdir.mkdir(parents=True, exist_ok=True)
+        self.workdir.mkdir(parents=True, exist_ok=True if force else False)
         self("init")
 
         if identity:
@@ -351,6 +317,41 @@ class GitWrapper:
             self(["add", keepfile])
             self(["commit", "-m", "initial", keepfile])
         return self
+
+    def clone(
+        self,
+        dest: Union[str, Path],
+        force=False,
+        branch: Optional[str] = None,
+        exe: Optional[str] = None,
+        identity: Optional[Tuple[str, str]] = None,
+    ) -> GitWrapper:
+        from shutil import rmtree
+
+        dest = Path(dest)
+        identity = self.identity if identity is None else identity
+        exe = self.exe if exe is None else exe
+
+        if force:
+            rmtree(dest, ignore_errors=True)
+        else:
+            if dest.exists():
+                raise ValueError(f"target directory present {dest}")
+
+        self(
+            [
+                "clone",
+                *(["--branch", branch] if branch else []),
+                self.workdir.absolute(),
+                dest.absolute(),
+            ],
+        )
+
+        result = self.__class__(dest, exe=exe, identity=identity)
+        if identity:
+            result(["config", "user.name", identity[0]])
+            result(["config", "user.email", identity[1]])
+        return result
 
     def __call__(self, cmd: Union[List[Any], Any], *args) -> str:
         arguments = []
@@ -375,7 +376,7 @@ class GitWrapper:
     def __truediv__(self, other):
         return self.workdir.absolute() / other
 
-    def dump(self, fp: typing.TextIO = sys.stdout) -> Optional[str]:
+    def dump(self, fp: TextIO = sys.stdout) -> Optional[str]:
         lines = f"REPO: {self.workdir}"
         lines += "\n [status]\n" + indent(self(["status"]))
         lines += "\n [branch]\n" + indent(self(["branch", "-avv"]))
@@ -391,6 +392,8 @@ class GitWrapper:
 
 
 class GitCli(GitWrapper):
+    BETA_BRANCHES = re.compile(r"/beta/(?P<ver>\d+([.]\d+)*)")
+
     def commit(
         self, paths: Union[str, Path, List[Union[str, Path]]], message: str
     ) -> None:
@@ -407,17 +410,10 @@ class GitCli(GitWrapper):
         return old
 
     def branches(
-        self, expr: Optional[Union[str, bool, re.Pattern]] = None
+        self, expr: Optional[Union[str, re.Pattern]] = None
     ) -> Tuple[List[str], Dict[str, List[str]]]:
-        BETAEXPR = re.compile(r"/beta/(?P<ver>\d+([.]\d+)*)")
         branches = self(["branch", "-a", "--format", "%(refname)"]).split()
-        matchobj = None
-        if expr is True:
-            matchobj = BETAEXPR
-        elif isinstance(expr, str):
-            matchobj = re.compile(expr)
-        elif expr:
-            matchobj = expr
+        matchobj = re.compile(expr) if isinstance(expr, str) else expr
 
         if matchobj:
             branches = [name for name in branches if matchobj.search(name)]
