@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import io
 import re
-import os
 import ast
 import sys
 import json
@@ -56,9 +55,9 @@ class AbortExecution(Exception):
         return "".join(result)
 
 
-def rmtree(path: Path):
-    from shutil import rmtree
+def urmtree(path: Path):
     from os import name
+    from shutil import rmtree
     from stat import S_IWUSR
     if name == "nt":
         for p in path.rglob("*"):
@@ -315,7 +314,7 @@ class GitWrapper:
         keepfile = self.workdir / self.KEEPFILE if keepfile is True else keepfile
 
         if force:
-            rmtree(self.workdir)
+            urmtree(self.workdir)
         self.workdir.mkdir(parents=True, exist_ok=True if force else False)
         self("init")
 
@@ -342,7 +341,7 @@ class GitWrapper:
         exe = self.exe if exe is None else exe
 
         if force:
-            rmtree(dest)
+            urmtree(dest)
         else:
             if dest.exists():
                 raise ValueError(f"target directory present {dest}")
