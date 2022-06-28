@@ -170,7 +170,7 @@ def beta(
         author = repo.default_signature
         commiter = repo.default_signature
         parent = repo.revparse_single(repo.head.shorthand).hex
-        relpath = initfile.absolute().relative_to(workdir)
+        relpath = initfile.absolute().relative_to(workdir.absolute())
         repo.index.add(str(relpath).replace("\\", "/"))
         repo.index.write()
         tree = repo.index.write_tree()

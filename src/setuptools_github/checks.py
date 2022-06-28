@@ -26,7 +26,9 @@ def check_repo_mods(error: ErrorFunctionType, workdir: Path, initfile: Path):
 
     repo = Repository(workdir)
 
-    rel_initfile = str(initfile.relative_to(workdir)).replace("\\", "/")
+    rel_initfile = str(initfile.absolute().relative_to(workdir.absolute())).replace(
+        "\\", "/"
+    )
     unstracked = {p for p, f in repo.status().items() if f & GIT_STATUS_WT_NEW}
     if rel_initfile in unstracked:
         error(
