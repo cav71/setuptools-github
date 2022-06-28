@@ -54,7 +54,7 @@ def test_extract_beta_branches(git_project_factory):
     project(["fetch", "--all"])
 
     local_branches, remote_branches, tags = [
-        *project.branches(),
+        *project.branches(project.BETA_BRANCHES),
         project(["tag", "-l"]).split(),
     ]
 
