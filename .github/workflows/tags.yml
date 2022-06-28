@@ -46,9 +46,8 @@ jobs:
       - name: Publish packages to pypi (release)
         shell: bash
         env:
-          TWINE_REPOSITORY: ${{ secrets.TWINE_REPOSITORY }}
           TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
         run: |
-          twine upload --skip-existing --non-interactive dist/*
+          twine upload --skip-existing --non-interactive --repository pypi dist/*
   
