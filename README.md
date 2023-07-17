@@ -3,17 +3,10 @@ setuptools-github
 
 [![PyPI version](https://img.shields.io/pypi/v/click-plus.svg?color=blue)](https://pypi.org/project/click-plus)
 [![Python versions](https://img.shields.io/pypi/pyversions/click-plus.svg)](https://pypi.org/project/click-plus)
+[![Build](https://github.com/cav71/click-plus/actions/workflows/master.yml/badge.svg)](https://github.com/cav71/click-plus/actions)
 
 HHH
 ===
-
-.. image:: https://img.shields.io/pypi/v/click-plus.svg
-   :target: https://pypi.org/project/click-plus
-   :alt: PyPI version
-
-.. image:: https://img.shields.io/pypi/pyversions/click-plus.svg
-   :target: https://pypi.org/project/click-plus
-   :alt: Python versions
 
 .. image:: https://github.com/cav71/click-plus/actions/workflows/master.yml/badge.svg
    :target: https://github.com/cav71/click-plus/actions
