@@ -2,7 +2,7 @@ setuptools-github
 =================
 
 [![PyPI version](https://img.shields.io/pypi/v/click-plus.svg?color=blue)](https://pypi.org/project/click-plus)
-
+[![Python versions](https://img.shields.io/pypi/pyversions/click-plus.svg)](https://pypi.org/project/click-plus)
 
 HHH
 ===
