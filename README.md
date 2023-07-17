@@ -34,7 +34,7 @@ setup(
 
 Copy all github action files from [workflows](https://github.com/cav71/setuptools-github/tree/release/0.2.2/.github/workflows)
 
-##Development
+## Development
 Once the setup is done, the workflow is rather simple.
 
 * Commit into the **master** branch and for each commit CI (github) will:
