@@ -8,17 +8,20 @@ setuptools-github
 [![Coverage](https://codecov.io/gh/cav71/setuptools-github/branch/master/graph/badge.svg?token=SIUMZ7MT5T)](Coverage)
 
 
-HHH
-===
-
-.. image:: https://codecov.io/gh/cav71/setuptools-github/branch/master/graph/badge.svg?token=SIUMZ7MT5T
-   :target: https://codecov.io/gh/cav71/setuptools-github
-   :alt: Coverage
-
 Intro
------
+=====
 
-**setuptools-github** is both a library and a script to support simple life cycle management for
+**setuptools-github** implements the simplest project life cycle, aimed at delivering
+packages into [PyPI](https://pypi.org/project/click-plus).
+
+The workflow is rather simple:
+
+  * The **master** branch contains work committed and for each commit CI (github):
+     * 
+      
+
+
+is both a library and a script to support simple life cycle management for
 software projects.
 
 It is based on a simple and lightweight approach based on a single **master** branch,
