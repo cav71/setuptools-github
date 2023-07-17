@@ -4,17 +4,12 @@ setuptools-github
 [![PyPI version](https://img.shields.io/pypi/v/click-plus.svg?color=blue)](https://pypi.org/project/click-plus)
 [![Python versions](https://img.shields.io/pypi/pyversions/click-plus.svg)](https://pypi.org/project/click-plus)
 [![Build](https://github.com/cav71/click-plus/actions/workflows/master.yml/badge.svg)](https://github.com/cav71/click-plus/actions)
+[![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](Black)
+[![Coverage](https://codecov.io/gh/cav71/setuptools-github/branch/master/graph/badge.svg?token=SIUMZ7MT5T)](Coverage)
+
 
 HHH
 ===
-
-.. image:: https://github.com/cav71/click-plus/actions/workflows/master.yml/badge.svg
-   :target: https://github.com/cav71/click-plus/actions
-   :alt: Build
-
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
-   :target: https://github.com/psf/black
-   :alt: Black
 
 .. image:: https://codecov.io/gh/cav71/setuptools-github/branch/master/graph/badge.svg?token=SIUMZ7MT5T
    :target: https://codecov.io/gh/cav71/setuptools-github
