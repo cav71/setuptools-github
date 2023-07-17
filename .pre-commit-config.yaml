@@ -3,9 +3,28 @@ repos:
     rev: 22.3.0
     hooks:
     - id: black
+      exclude: tests
 
--   repo: https://gitlab.com/pycqa/flake8
-    rev: 4.0.1
+-   repo: https://github.com/PyCQA/flake8
+    rev: 6.0.0
     hooks:
-    - id: flake8
+    -   id: flake8
+
+#-   repo: https://github.com/pycqa/isort
+#    rev: 5.11.2
+#    hooks:
+#    - id: isort
+#      name: isort (python)
+#    - id: isort
+#      name: isort (cython)
+#      types: [cython]
+#    - id: isort
+#      name: isort (pyi)
+#      types: [pyi]
+
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.4.1
+    hooks:
+    -   id: mypy
+        exclude: ^(tests)
 

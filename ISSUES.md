@@ -1,3 +1,3 @@
 To do:
 
-  - [ ] fix images in https://pypi.org/project/setuptools-github
+  - [] fix images in https://pypi.org/project/setuptools-github

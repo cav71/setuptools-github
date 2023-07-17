@@ -29,7 +29,7 @@ Intro
 software projects.
 
 It is based on a simple and lightweight approach based on a single **master** branch,
-a 'release' branch (**beta/N.M.O**) and finally a 'release' tag (**release/N.M.O**) from which the final
+a 'release' branch (**beta/N.M.O**) and finally a tag marking a 'release' (**release/N.M.O**) from which the final
 stable packages are generated from.
 
 **setuptools-github** is fully CI/CD integrated (github actions) to eliminate any manual step involved
@@ -126,7 +126,7 @@ the code undergo the following steps:
 
 No package artifact are generated here as the code is not "installable" (eg. is still in source version).
 
-.. image:: maintainer/master-branch.png
+.. image:: https://github.com/cav71/setuptools-github/blob/release/0.2.2/maintainer/master-branch.png?raw=true
    :alt: blha
    :width: 400
 
@@ -135,7 +135,7 @@ The delivery branch
 
 The next step is branching **master** into a "delivery" branch using the **beta/N.M.O** name convention.
 
-.. image:: maintainer/delivery-branch.png
+.. image:: https://raw.githubusercontent.com/cav71/setuptools-github/release/0.2.2/maintainer/delivery-branch.png
    :alt: blha
    :width: 400
 
