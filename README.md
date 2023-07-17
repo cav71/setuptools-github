@@ -7,8 +7,7 @@ setuptools-github
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](Black)
 [![Coverage](https://codecov.io/gh/cav71/setuptools-github/branch/master/graph/badge.svg?token=SIUMZ7MT5T)](Coverage)
 
-Quick start
-===========
+## Quick start
 setuptools-github implements the simplest project life cycle, aimed at delivering
 packages into [PyPI](https://pypi.org/project/click-plus).
 
@@ -32,15 +31,11 @@ setup(
   ...
 ````
 **Copy the github actions**
-Copy all the files from x
 
-### 
+Copy all github action files from [workflows](https://github.com/cav71/setuptools-github/tree/release/0.2.2/.github/workflows)
 
-
-Intro
-=====
-
-The workflow is rather simple.
+##Development
+Once the setup is done, the workflow is rather simple.
 
 * Commit into the **master** branch and for each commit CI (github) will:
   - run flake8
