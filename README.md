@@ -1,35 +1,75 @@
 setuptools-github
 =================
 
-[![PyPI version](https://img.shields.io/pypi/v/click-plus.svg?color=blue)](https://pypi.org/project/click-plus)
-[![Python versions](https://img.shields.io/pypi/pyversions/click-plus.svg)](https://pypi.org/project/click-plus)
-[![Build](https://github.com/cav71/click-plus/actions/workflows/master.yml/badge.svg)](https://github.com/cav71/click-plus/actions)
+[![PyPI version](https://img.shields.io/pypi/v/setuptools-github.svg?color=blue)](https://pypi.org/project/setuptools-github)
+[![Python versions](https://img.shields.io/pypi/pyversions/setuptools-github.svg)](https://pypi.org/project/setuptools-github)
+[![Build](https://github.com/cav71/setuptools-github/actions/workflows/master.yml/badge.svg)](https://github.com/cav71/setuptools-github/actions)
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](Black)
 [![Coverage](https://codecov.io/gh/cav71/setuptools-github/branch/master/graph/badge.svg?token=SIUMZ7MT5T)](Coverage)
+
+Quick start
+===========
+setuptools-github implements the simplest project life cycle, aimed at delivering
+packages into [PyPI](https://pypi.org/project/click-plus).
+
+**Setup the version file**
+
+In src/package_name/__init__.py
+```
+__version__ = "N.M.O"  # replace N, M and O with numerical values (eg. 0.0.0)
+__hash__ = ""
+```
+
+**Add the setup data**
+
+In setup.py
+```
+from setuptools_github import tools
+initfile = pathlib.Path(__file__).parent / "your_package/__init__.py"
+setup(
+  name="package-name",
+  version=tools.update_version(initfile, os.getenv("GITHUB_DUMP")),
+  ...
+````
+**Copy the github actions**
+Copy all the files from x
+
+### 
 
 
 Intro
 =====
 
-**setuptools-github** implements the simplest project life cycle, aimed at delivering
-packages into [PyPI](https://pypi.org/project/click-plus).
+The workflow is rather simple.
 
-The workflow is rather simple:
+* Commit into the **master** branch and for each commit CI (github) will:
+  - run flake8
+  - mypy
+  - pytest + coverage
+    (see *.github/workflows/master.yml*)
 
-  * The **master** branch contains work committed and for each commit CI (github):
-     * 
-      
+* Create and use a **beta/N.M.O** branch to integrate work from **master** and for each commit CI (github) will:
+  - run flake8
+  - mypy
+  - pytest + coverage
+  - (optional) send the coverage to codecov
+  - create a **beta** wheel as **package-N.M.Ob#1234** (1234 is a sequential build number)
+  - publish it into pypi.org as beta package
 
-
-is both a library and a script to support simple life cycle management for
-software projects.
-
-It is based on a simple and lightweight approach based on a single **master** branch,
-a 'release' branch (**beta/N.M.O**) and finally a tag marking a 'release' (**release/N.M.O**) from which the final
-stable packages are generated from.
+* Once ready for full release `setuptools-github-start-release micro src/your_package/__init__.py`:
+  - create the tag **beta/N.M.O** pointing to the latest **releaase/N.M.O** commit
+  - this will trigger the **release** wheel as **package-N.M.Ob** creation
+  - publish it into pypi.org as released package
 
 **setuptools-github** is fully CI/CD integrated (github actions) to eliminate any manual step involved
 with software deployment (except code writing).
+
+
+Project Setup
+=============
+
+First add a "version" file in the source code eg. src/package_name/__init__.py with a content like this:
+
 
 The generated package provides two important variables (auto updated from the code leveraging automation):
 
