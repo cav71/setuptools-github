@@ -5,16 +5,16 @@ import pygit2
 from . import checks
 
 
-def extract_beta_branches(
+def extract_beta_branches_and_release_tags(
     repo: pygit2.Repository,
 ) -> tuple[list[str], dict[str, list[str]], list[str]]:
-    """given a pygit2 Repository object extracts local and remote beta branches
+    """extracts the beta branches (local and remotes) and release tags
 
      This function will extract all the 'beta' branches (eg. with the beta/N(.N)* form)
      and the release tags (eg. with release/N(.N)* form) from it.
 
     Examples:
-         >>> extract_beta_branches(pygit2.Repository(.. some path))
+         >>> extract_beta_branches_and_release_tags(pygit2.Repository(.. some path))
          (
              ['beta/0.0.1', 'beta/0.0.4'],  # local branches
              {'origin': ['beta/0.0.3', 'beta/0.0.4'], 'repo1': ['beta/0.0.2']},
