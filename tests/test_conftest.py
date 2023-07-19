@@ -1,6 +1,3 @@
-import io
-
-
 def test_operation_create(git_project_factory):
     # simple git repo (only 1 .keep file and 1 .git dir)
     repo0 = git_project_factory().create()
@@ -30,10 +27,8 @@ def test_operation_dump(git_project_factory):
     repo = git_project_factory().create()
     assert set(f.name for f in repo.workdir.glob("*")) == {".git", ".keep"}
 
-    buf = io.StringIO()
-    repo.dump(buf, anon=True)
     assert (
-        buf.getvalue()
+        repo.dumps(mask=True)
         == f"""\
 REPO: {repo.workdir}
  [status]

@@ -9,7 +9,7 @@ import shutil
 import contextlib
 import collections
 import subprocess
-from typing import Union, Optional, Tuple, TextIO, List, Dict, Any
+from typing import Union, Optional, Tuple, List, Dict, Any
 
 import pytest
 
@@ -231,23 +231,19 @@ def git_project_factory(request, tmp_path):
         def __truediv__(self, other):
             return self.workdir.absolute() / other
 
-        def dump(self, fp: TextIO = sys.stdout, anon=False) -> Optional[str]:
+        def dumps(self, mask=False) -> str:
             lines = f"REPO: {self.workdir}"
             lines += "\n [status]\n" + indent(self(["status"]))
             branches = self(["branch", "-avv"])
-            if anon:
+            if mask:
                 branches = re.sub(r"(..\w\s+)\w{7}(\s+.*)", r"\1ABCDEFG\2", branches)
             lines += "\n [branch]\n" + indent(branches)
-
             lines += "\n [tags]\n" + indent(self(["tag", "-l"]))
             lines += "\n [remote]\n" + indent(self(["remote", "-v"]))
-            if fp == io.StringIO:
-                buf = io.StringIO()
-                print(lines, file=buf)
-                return buf.getvalue()
-            else:
-                print(lines, file=fp)
-                return None
+
+            buf = io.StringIO()
+            print(lines, file=buf)
+            return buf.getvalue()
 
     class GitCommand(GitRepo):
         BETA_BRANCHES = re.compile(r"/beta/(?P<ver>\d+([.]\d+)*)")
