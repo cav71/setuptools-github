@@ -34,9 +34,12 @@ def test_git_repo_dump(git_project_factory):
 
     buf = io.StringIO()
     repo.dump(buf)
-    found = sub(r"master [a-zA-Z0-9]{7} initial", "master XXXXXXX initial",
-                buf.getvalue())
-    assert found == f"""\
+    found = sub(
+        r"master [a-zA-Z0-9]{7} initial", "master XXXXXXX initial", buf.getvalue()
+    )
+    assert (
+        found
+        == f"""\
 REPO: {repo.workdir}
  [status]
   On branch master
@@ -50,3 +53,4 @@ REPO: {repo.workdir}
  [remote]
 
 """
+    )
