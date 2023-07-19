@@ -288,7 +288,6 @@ def git_project_factory(request, tmp_path):
             return local_branches, remote_branches
 
     class Project(GitCommand):
-
         @property
         def initfile(self):
             return self.workdir / "src" / "__init__.py"
@@ -322,7 +321,9 @@ def git_project_factory(request, tmp_path):
     def id_generator(size=6):
         from string import ascii_uppercase, digits
         from random import choice
-        return ''.join(choice(ascii_uppercase+digits) for _ in range(size))
+
+        return "".join(choice(ascii_uppercase + digits) for _ in range(size))
+
     return lambda subdir="": Project(tmp_path / (subdir or id_generator()))
     # or request.node.name
 
