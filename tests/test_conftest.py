@@ -32,9 +32,6 @@ def test_operation_dump(git_project_factory):
 
     buf = io.StringIO()
     repo.dump(buf, anon=True)
-    # found = sub(
-    #     r"master [a-zA-Z0-9]{7} initial", "master XXXXXXX initial", buf.getvalue()
-    # )
     assert (
         buf.getvalue()
         == f"""\
@@ -52,7 +49,3 @@ REPO: {repo.workdir}
 
 """
     )
-
-
-def test_operation_branch(git_project_factory):
-    pass
