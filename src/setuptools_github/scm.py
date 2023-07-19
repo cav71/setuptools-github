@@ -1,7 +1,7 @@
 from __future__ import annotations
 import re
 from pathlib import Path
-import pygit2
+import pygit2  # type: ignore
 
 from . import checks
 
