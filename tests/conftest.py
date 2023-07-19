@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import os
 import io
 import re
@@ -100,8 +101,29 @@ def scripter(request, tmp_path_factory, datadir):
     return Scripter(pathlib.Path(request.module.__file__).parent, datadir)
 
 
+###################
+# GIT TEST HELPER #
+###################
+
+
 @pytest.fixture(scope="function")
 def git_project_factory(request, tmp_path):
+    """fixture to generate git working repositories
+
+    def test(git_project_factory):
+        # simple git repo (only 1 .keep file)
+        repo = git_project_factory().create()
+
+        # git repo with a "version" src/__init__.py file
+        repo1 = git_project_factory().create("0.0.0")
+
+        # clone from repo
+        repo2 = git_project_factory().create(clone=repo)
+
+        assert repo.workdir != repo1.workdir
+        assert repo.workdir != repo1.workdir
+
+    """
     from pathlib import Path
 
     def indent(txt, pre=" " * 2):
@@ -116,46 +138,69 @@ def git_project_factory(request, tmp_path):
         else:
             last_eol = ""
 
-        return pre + txt.replace("\n", "\n" + pre) + last_eol
+        result = pre + txt.replace("\n", "\n" + pre) + last_eol
+        return result if result.strip() else ""
 
-    class GitWrapper:
-        EXE: str = "git"
-        KEEPFILE = ".keep"
-
+    class GitRepo:
         def __init__(
             self,
             workdir: Union[Path, str],
-            exe: Optional[str] = None,
             identity: Tuple[str, str] = ("First Last", "user@email"),
+            exe: Optional[str] = None,
+            gitdir: Optional[Union[Path, str]] = None,
         ):
-            self.workdir = Path(workdir)
-            self.exe = exe or self.EXE
+            self.workdir = Path(workdir).absolute()
             self.identity = identity
+            self.exe = exe or "git"
+            self.gitdir = (
+                Path(gitdir) if gitdir else (self.workdir / ".git")
+            ).absolute()
+
+        def __call__(self, cmd: Union[List[Any], Any]) -> str:
+            cmds = [cmd] if isinstance(cmd, str) else cmd
+
+            arguments = [
+                self.exe,
+            ]
+            if str(cmds[0]) != "clone":
+                arguments.extend(
+                    [
+                        "--git-dir",
+                        self.gitdir,
+                        "--work-tree",
+                        self.workdir,
+                    ]
+                )
+            arguments.extend(cmds)
+            return subprocess.check_output(
+                [str(a) for a in arguments], encoding="utf-8"
+            )
 
         def init(
             self,
             force: bool = False,
-            keepfile: Optional[Union[bool, Path]] = True,
             identity: Optional[Tuple[str, str]] = None,
-        ) -> GitWrapper:
+        ) -> GitRepo:
             from shutil import rmtree
 
             identity = self.identity if identity is None else identity
-            keepfile = self.workdir / self.KEEPFILE if keepfile is True else keepfile
+            keepfile = self.workdir / ".keep"
 
             if force:
                 rmtree(self.workdir, ignore_errors=True)
             self.workdir.mkdir(parents=True, exist_ok=True if force else False)
-            self("init")
 
-            if identity:
-                self(["config", "user.name", identity[0]])
-                self(["config", "user.email", identity[1]])
+            self(["init", "-b", "master"])
 
-            if keepfile:
-                keepfile.write_text("# dummy file to create the master branch")
-                self(["add", keepfile])
-                self(["commit", "-m", "initial", keepfile])
+            self(["config", "init.defaultBranch", "master"])
+            self(["config", "user.name", identity[0]])
+            self(["config", "user.email", identity[1]])
+
+            # need to create a commit to setup all refs
+            keepfile.write_text("# dummy file to create the master branch")
+            self(["add", keepfile])
+            self(["commit", "-m", "initial", keepfile])
+
             return self
 
         def clone(
@@ -163,55 +208,25 @@ def git_project_factory(request, tmp_path):
             dest: Union[str, Path],
             force=False,
             branch: Optional[str] = None,
-            exe: Optional[str] = None,
-            identity: Optional[Tuple[str, str]] = None,
-        ) -> GitWrapper:
+        ) -> GitRepo:
             from shutil import rmtree
 
-            dest = Path(dest)
-            identity = self.identity if identity is None else identity
-            exe = self.exe if exe is None else exe
-
+            workdir = Path(dest).absolute()
             if force:
-                rmtree(dest, ignore_errors=True)
-            else:
-                if dest.exists():
-                    raise ValueError(f"target directory present {dest}")
+                rmtree(workdir, ignore_errors=True)
+            if workdir.exists():
+                raise ValueError(f"target directory present {workdir}")
 
             self(
                 [
                     "clone",
                     *(["--branch", branch] if branch else []),
                     self.workdir.absolute(),
-                    dest.absolute(),
+                    workdir.absolute(),
                 ],
             )
 
-            result = self.__class__(dest, exe=exe, identity=identity)
-            if identity:
-                result(["config", "user.name", identity[0]])
-                result(["config", "user.email", identity[1]])
-            return result
-
-        def __call__(self, cmd: Union[List[Any], Any], *args) -> str:
-            arguments = []
-            if isinstance(cmd, str):
-                arguments.append(cmd)
-            else:
-                arguments.extend(cmd[:])
-
-            if str(arguments[0]) != "clone":
-                arguments = [
-                    self.exe,
-                    "--git-dir",
-                    str(self.workdir.absolute() / ".git"),
-                    "--work-tree",
-                    str(self.workdir.absolute()),
-                    *[str(a) for a in arguments],
-                ]
-            else:
-                arguments = [self.exe, *[str(a) for a in arguments]]
-            return subprocess.check_output(arguments, encoding="utf-8")
+            return self.__class__(workdir=workdir, identity=self.identity, exe=self.exe)
 
         def __truediv__(self, other):
             return self.workdir.absolute() / other
@@ -230,7 +245,7 @@ def git_project_factory(request, tmp_path):
                 print(lines, file=fp)
                 return None
 
-    class GitCli(GitWrapper):
+    class GitCommand(GitRepo):
         BETA_BRANCHES = re.compile(r"/beta/(?P<ver>\d+([.]\d+)*)")
 
         def commit(
@@ -272,7 +287,8 @@ def git_project_factory(request, tmp_path):
                 remote_branches[origin].append(name)
             return local_branches, remote_branches
 
-    class Project(GitCli):
+    class Project(GitCommand):
+
         @property
         def initfile(self):
             return self.workdir / "src" / "__init__.py"
@@ -288,8 +304,6 @@ def git_project_factory(request, tmp_path):
             )
 
         def create(self, version=None, clone=None, force=False):
-            # repo = git_project_factory().create("0.0.0")
-            # repo1 = git_project_factory().create(clone=repo)
             if clone:
                 clone.clone(self.workdir, force=force)
             else:
@@ -305,7 +319,12 @@ def git_project_factory(request, tmp_path):
                 self.commit([self.initfile], "initial commit")
             return self
 
-    return lambda subdir="": Project(tmp_path / (subdir or request.node.name))
+    def id_generator(size=6):
+        from string import ascii_uppercase, digits
+        from random import choice
+        return ''.join(choice(ascii_uppercase+digits) for _ in range(size))
+    return lambda subdir="": Project(tmp_path / (subdir or id_generator()))
+    # or request.node.name
 
 
 def pytest_configure(config):
