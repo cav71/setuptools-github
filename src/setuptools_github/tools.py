@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import io
 import re
 import ast
-import sys
 import json
-import subprocess
 
 from pathlib import Path
-from typing import Any, Union, Tuple, Optional, List, Dict, TextIO
+from typing import Any, Union, Tuple, Optional
+
+from . import scm
 
 
 class GithubError(Exception):
@@ -56,9 +55,11 @@ class AbortExecution(Exception):
 
 
 def urmtree(path: Path):
+    "universal (win|*nix) rmtree"
     from os import name
     from shutil import rmtree
     from stat import S_IWUSR
+
     if name == "nt":
         for p in path.rglob("*"):
             p.chmod(S_IWUSR)
@@ -78,57 +79,8 @@ def indent(txt: str, pre: str = " " * 2) -> str:
     else:
         last_eol = ""
 
-    return pre + txt.replace("\n", "\n" + pre) + last_eol
-
-
-def hubversion(gdata: Any, fallback: Optional[str]) -> Tuple[Optional[str], str]:
-    """gets a (version, sha) tuple from gdata.
-
-    GITHUB_DUMP is a json dump of the environment during an action run and
-    we pull the ref, run_number and sha keys.
-
-    ref can be something like refs/heads/master for the master branch,
-    refs/heads/beta/0.0.4 for a beta branch or refs/tags/release/0.0.3 for
-    a release tag.
-
-    the version returned is:
-        ("", "<sha-value>") for the master branch
-        ("0.0.4b8", "<sha-value>") for a beta branch (<version>b<build-number>)
-        ("0.0.3", "<sha-value>") for the release
-
-    Args:
-        gdata: json dictionary from $GITHUB_DUMP
-        fallback: returns this if a version is not defined in gdata
-
-    Returns:
-        (str, str): <update-version>, <shasum>
-    """
-
-    def validate(txt):
-        return ".".join(str(int(v)) for v in txt.split("."))
-
-    ref = gdata["ref"]  # eg. "refs/tags/release/0.0.3"
-    number = gdata["run_number"]  # eg. 3
-    shasum = gdata["sha"]  # eg. "2169f90c"
-
-    # the logic for the returned version:
-
-    # 1. if we are on master we use the version from the __init__.py module
-    if ref == "refs/heads/master":
-        return (fallback, shasum)
-
-    # 2. on a beta branch we add a "b<build-number>" string to the __init__.py version
-    #    the bersion is taken from the refs/heads/beta/<version>
-    if ref.startswith("refs/heads/beta/"):
-        version = validate(ref.rpartition("/")[2])
-        return (f"{version}b{number}", shasum)
-
-    # 3. on a release we use the version from the refs/tags/release/<version>
-    if ref.startswith("refs/tags/release/"):
-        version = validate(ref.rpartition("/")[2])
-        return (f"{version}", shasum)
-
-    raise InvalidGithubReference("unhandled github ref", gdata)
+    result = pre + txt.replace("\n", "\n" + pre) + last_eol
+    return result if result.strip() else result.strip()
 
 
 def get_module_var(
@@ -236,31 +188,6 @@ def set_module_var(
     return fixed, txt
 
 
-def update_version(
-    initfile: Union[str, Path], github_dump: Optional[str] = None
-) -> Optional[str]:
-    """extracts version information from github_dump and updates initfile in-place
-
-    Args:
-        initfile (str, Path): path to the __init__.py file with a __version__ variable
-        github_dump (str): the os.getenv("GITHUB_DUMP") value
-
-    Returns:
-        str: the new version for the package
-    """
-
-    path = Path(initfile)
-
-    if not github_dump:
-        return get_module_var(path, "__version__")
-    gdata = json.loads(github_dump) if isinstance(github_dump, str) else github_dump
-
-    version, thehash = hubversion(gdata, get_module_var(path, "__version__"))
-    set_module_var(path, "__version__", version)
-    set_module_var(path, "__hash__", thehash)
-    return version
-
-
 def bump_version(version: str, mode: str) -> str:
     """given a version str will bump it according to mode
 
@@ -289,154 +216,51 @@ def bump_version(version: str, mode: str) -> str:
     return ".".join(str(v) for v in newver)
 
 
-class GitWrapper:
-    EXE: str = "git"
-    KEEPFILE = ".keep"
+def update_version(
+    initfile: str | Path, github_dump: str | None = None, abort: bool = True
+) -> Optional[str]:
+    """extracts version information from github_dump and updates initfile in-place
 
-    def __init__(
-        self,
-        workdir: Union[Path, str],
-        exe: Optional[str] = None,
-        identity: Tuple[str, str] = ("First Last", "user@email"),
-    ):
-        self.workdir = Path(workdir)
-        self.exe = exe or self.EXE
-        self.identity = identity
+    Args:
+        initfile (str, Path): path to the __init__.py file with a __version__ variable
+        github_dump (str): the os.getenv("GITHUB_DUMP") value
 
-    def init(
-        self,
-        force: bool = False,
-        keepfile: Optional[Union[bool, Path]] = True,
-        identity: Optional[Tuple[str, str]] = None,
-    ) -> GitWrapper:
+    Returns:
+        str: the new version for the package
+    """
 
-        identity = self.identity if identity is None else identity
-        keepfile = self.workdir / self.KEEPFILE if keepfile is True else keepfile
+    path = Path(initfile)
+    repo = scm.lookup(path)
 
-        if force:
-            urmtree(self.workdir)
-        self.workdir.mkdir(parents=True, exist_ok=True if force else False)
-        self("init")
+    if not (repo or github_dump):
+        if abort:
+            raise GithubError(f"cannot find a valid git repo for {path}")
+        return get_module_var(path, "__version__")
 
-        if identity:
-            self(["config", "user.name", identity[0]])
-            self(["config", "user.email", identity[1]])
+    if not github_dump and repo:
+        gdata = {
+            "ref": repo.head.name,
+            "sha": repo.head.target.hex[:7],
+            "run_number": 0,
+        }
+        dirty = repo.status()
+    else:
+        gdata = json.loads(github_dump) if isinstance(github_dump, str) else github_dump
+        dirty = False
 
-        if keepfile:
-            keepfile.write_text("# dummy file to create the master branch")
-            self(["add", keepfile])
-            self(["commit", "-m", "initial", keepfile])
-        return self
+    version = current = get_module_var(path, "__version__")
+    expr = re.compile(r"/(?P<what>beta|release)/(?P<version>\d+([.]\d+)*)")
 
-    def clone(
-        self,
-        dest: Union[str, Path],
-        force=False,
-        branch: Optional[str] = None,
-        exe: Optional[str] = None,
-        identity: Optional[Tuple[str, str]] = None,
-    ) -> GitWrapper:
-        dest = Path(dest)
-        identity = self.identity if identity is None else identity
-        exe = self.exe if exe is None else exe
+    if match := expr.search(gdata["ref"]):
+        if (version := match.group("version")) != current:
+            raise InvalidGithubReference(
+                f"current version for '{gdata['ref']}' mismatch {current} != {version}"
+            )
+        if match.group("what") == "beta":
+            version = f"{current}b{gdata['run_number']}"
 
-        if force:
-            urmtree(dest)
-        else:
-            if dest.exists():
-                raise ValueError(f"target directory present {dest}")
+    short = gdata["sha"] + ("*" if dirty else "")
 
-        self(
-            [
-                "clone",
-                *(["--branch", branch] if branch else []),
-                self.workdir.absolute(),
-                dest.absolute(),
-            ],
-        )
-
-        result = self.__class__(dest, exe=exe, identity=identity)
-        if identity:
-            result(["config", "user.name", identity[0]])
-            result(["config", "user.email", identity[1]])
-        return result
-
-    def __call__(self, cmd: Union[List[Any], Any], *args) -> str:
-        arguments = []
-        if isinstance(cmd, str):
-            arguments.append(cmd)
-        else:
-            arguments.extend(cmd[:])
-
-        if str(arguments[0]) != "clone":
-            arguments = [
-                self.exe,
-                "--git-dir",
-                str(self.workdir.absolute() / ".git"),
-                "--work-tree",
-                str(self.workdir.absolute()),
-                *[str(a) for a in arguments],
-            ]
-        else:
-            arguments = [self.exe, *[str(a) for a in arguments]]
-        return subprocess.check_output(arguments, encoding="utf-8")
-
-    def __truediv__(self, other):
-        return self.workdir.absolute() / other
-
-    def dump(self, fp: TextIO = sys.stdout) -> Optional[str]:
-        lines = f"REPO: {self.workdir}"
-        lines += "\n [status]\n" + indent(self(["status"]))
-        lines += "\n [branch]\n" + indent(self(["branch", "-avv"]))
-        lines += "\n [tags]\n" + indent(self(["tag", "-l"]))
-        lines += "\n [remote]\n" + indent(self(["remote", "-v"]))
-        if fp == io.StringIO:
-            buf = io.StringIO()
-            print(lines, file=buf)
-            return buf.getvalue()
-        else:
-            print(lines, file=fp)
-            return None
-
-
-class GitCli(GitWrapper):
-    BETA_BRANCHES = re.compile(r"/beta/(?P<ver>\d+([.]\d+)*)")
-
-    def commit(
-        self, paths: Union[str, Path, List[Union[str, Path]]], message: str
-    ) -> None:
-        paths = [paths] if isinstance(paths, (Path, str)) else paths
-        self(["add", *paths])
-        self(["commit", "-m", message, *paths])
-
-    def branch(self, name: Optional[str] = None, origin: str = "master") -> str:
-        if not name:
-            return self(["rev-parse", "--abbrev-ref", "HEAD"]).strip()
-        assert origin or origin is None
-        old = self.branch()
-        self(["checkout", "-b", name, "--track", origin])
-        return old
-
-    def branches(
-        self, expr: Optional[Union[str, re.Pattern]] = None
-    ) -> Tuple[List[str], Dict[str, List[str]]]:
-        branches = self(["branch", "-a", "--format", "%(refname)"]).split()
-        matchobj = re.compile(expr) if isinstance(expr, str) else expr
-
-        if matchobj:
-            branches = [name for name in branches if matchobj.search(name)]
-
-        n = len("refs/heads/")
-        local_branches = [
-            name[n:] for name in branches if name.startswith("refs/heads/")
-        ]
-        remote_branches: Dict[str, List[str]] = {}
-        n = len("refs/remotes/")
-        for name in branches:
-            if not name.startswith("refs/remotes/"):
-                continue
-            origin, _, name = name[n:].partition("/")
-            if origin not in remote_branches:
-                remote_branches[origin] = []
-            remote_branches[origin].append(name)
-        return local_branches, remote_branches
+    set_module_var(path, "__version__", version)
+    set_module_var(path, "__hash__", short)
+    return version
