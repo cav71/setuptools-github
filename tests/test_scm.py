@@ -4,6 +4,16 @@ import pytest
 from setuptools_github import scm
 
 
+def test_lookup(git_project_factory):
+    repo = git_project_factory().create("0.0.0")
+    dstdir = repo.workdir / "a" / "b" / "c"
+    dstdir.mkdir(parents=True)
+    (dstdir / "out.txt").touch()
+    assert (dstdir / "out.txt").exists()
+
+    assert scm.lookup(dstdir).workdir == f"{repo.workdir}/"
+
+
 def test_extract_beta_branches(git_project_factory):
     "test the branch and tag extraction function"
     from pygit2 import Repository

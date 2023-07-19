@@ -1,8 +1,21 @@
 from __future__ import annotations
 import re
+from pathlib import Path
 import pygit2
 
 from . import checks
+
+
+def lookup(path: Path) -> pygit2.Repository | None:
+    cur = path
+    found = False
+    while not found:
+        if (cur / ".git").exists():
+            return pygit2.Repository(cur)
+        if str(cur) == cur.root:
+            break
+        cur = cur.parent
+    return None
 
 
 def extract_beta_branches_and_release_tags(
