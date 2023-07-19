@@ -242,7 +242,7 @@ def git_project_factory(request, tmp_path):
             lines += "\n [remote]\n" + indent(self(["remote", "-v"]))
 
             buf = io.StringIO()
-            print(lines, file=buf)
+            print("\n".join([line.rstrip() for line in lines.split("\n")]), file=buf)
             return buf.getvalue()
 
     class GitCommand(GitRepo):
