@@ -1,7 +1,7 @@
 import io
 
 
-def test_git_repo_create(git_project_factory):
+def test_operation_create(git_project_factory):
     # simple git repo (only 1 .keep file and 1 .git dir)
     repo0 = git_project_factory().create()
     assert set(f.name for f in repo0.workdir.glob("*")) == {".git", ".keep"}
@@ -26,19 +26,17 @@ def test_git_repo_create(git_project_factory):
     assert set(f.name for f in repo3.workdir.glob("*")) == {".git", ".keep", "src"}
 
 
-def test_git_repo_dump(git_project_factory):
-    from re import sub
-
+def test_operation_dump(git_project_factory):
     repo = git_project_factory().create()
     assert set(f.name for f in repo.workdir.glob("*")) == {".git", ".keep"}
 
     buf = io.StringIO()
-    repo.dump(buf)
-    found = sub(
-        r"master [a-zA-Z0-9]{7} initial", "master XXXXXXX initial", buf.getvalue()
-    )
+    repo.dump(buf, anon=True)
+    # found = sub(
+    #     r"master [a-zA-Z0-9]{7} initial", "master XXXXXXX initial", buf.getvalue()
+    # )
     assert (
-        found
+        buf.getvalue()
         == f"""\
 REPO: {repo.workdir}
  [status]
@@ -46,7 +44,7 @@ REPO: {repo.workdir}
   nothing to commit, working tree clean
 
  [branch]
-  * master XXXXXXX initial
+  * master ABCDEFG initial
 
  [tags]
 
@@ -54,3 +52,7 @@ REPO: {repo.workdir}
 
 """
     )
+
+
+def test_operation_branch(git_project_factory):
+    pass

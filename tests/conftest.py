@@ -231,10 +231,14 @@ def git_project_factory(request, tmp_path):
         def __truediv__(self, other):
             return self.workdir.absolute() / other
 
-        def dump(self, fp: TextIO = sys.stdout) -> Optional[str]:
+        def dump(self, fp: TextIO = sys.stdout, anon=False) -> Optional[str]:
             lines = f"REPO: {self.workdir}"
             lines += "\n [status]\n" + indent(self(["status"]))
-            lines += "\n [branch]\n" + indent(self(["branch", "-avv"]))
+            branches = self(["branch", "-avv"])
+            if anon:
+                branches = re.sub(r"(..\w\s+)\w{7}(\s+.*)", r"\1ABCDEFG\2", branches)
+            lines += "\n [branch]\n" + indent(branches)
+
             lines += "\n [tags]\n" + indent(self(["tag", "-l"]))
             lines += "\n [remote]\n" + indent(self(["remote", "-v"]))
             if fp == io.StringIO:
