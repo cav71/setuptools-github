@@ -195,10 +195,9 @@ def git_project_factory(request, tmp_path):
             self.workdir.mkdir(parents=True, exist_ok=True if force else False)
 
             self(["init", "-b", "master"])
-            self(["commit", "-m", "initial", "--allow-empty"])
-
             self._config(identity or self.identity)
 
+            self(["commit", "-m", "initial", "--allow-empty"])
             return self
 
         def clone(
