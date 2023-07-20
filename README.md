@@ -7,21 +7,58 @@ setuptools-github
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](Black)
 [![Coverage](https://codecov.io/gh/cav71/setuptools-github/branch/master/graph/badge.svg?token=SIUMZ7MT5T)](Coverage)
 
+
+## Intro
+setuptools-github helps to implement a simple project life cycle
+aimed at delivering packages into [PyPI](https://pypi.org): 
+there are three important components.
+
+#### /master branch
+This is the branch for CI build and code quality checks as:
+  - run flake8
+  - mypy
+  - pytest + coverage
+    (see *.github/workflows/master.yml*)
+
+Work from other feature branches get integrated here, for testing.
+
+#### /beta/N.M.O branch
+This branch (on each commit) will generate a 
+beta **package-N.M.O.bX** into [PyPI](https://pypi.org).
+**X** denotes a unique increasing build number.
+  - run flake8
+  - mypy
+  - pytest + coverage
+    (see *.github/workflows/master.yml*)
+  - packaging the wheel for **package-N.M.O.bX**
+  - (optional) publish the 
+
+Changes from **/master** branch get pushed here, to prepare for packaging
+into *beta* packages: these are continuosly released and they can 
+be used for integration testing.
+
+#### /release/N.M.O tag
+On tagging a commit in a **/beta/N.M.O** branch will delivere the 
+formal package **package-N.M.O** into [PyPI](https://pypi.org).
+
+> **NOTE:** All packages include a __version__ and __hash__ variables, used to
+> link the generated package with the source code.
+
 ## Quick start
-setuptools-github implements the simplest project life cycle, aimed at delivering
-packages into [PyPI](https://pypi.org/project/click-plus).
+
+Start from the */master* branch:
 
 **Setup the version file**
 
-In src/package_name/__init__.py
+We will use src/package_name/__init__.py to store the package information:
 ```
 __version__ = "N.M.O"  # replace N, M and O with numerical values (eg. 0.0.0)
-__hash__ = ""
+__hash__ = ""  # leave this empty
 ```
 
 **Add the setup data**
 
-In setup.py
+In setup.py add:
 ```
 from setuptools_github import tools
 initfile = pathlib.Path(__file__).parent / "your_package/__init__.py"
@@ -29,7 +66,8 @@ setup(
   name="package-name",
   version=tools.update_version(initfile, os.getenv("GITHUB_DUMP")),
   ...
-````
+```
+
 **Copy the github actions**
 
 Copy all github action files from [workflows](https://github.com/cav71/setuptools-github/tree/release/0.2.2/.github/workflows)
@@ -37,11 +75,18 @@ Copy all github action files from [workflows](https://github.com/cav71/setuptool
 ## Development
 Once the setup is done, the workflow is rather simple.
 
-* Commit into the **master** branch and for each commit CI (github) will:
+### /master branch
+Commit into the **master** branch and for each commit CI (github) will:
   - run flake8
   - mypy
   - pytest + coverage
     (see *.github/workflows/master.yml*)
+
+### /beta/N.M.O
+To create a new beta branch:
+```bash
+python -m xxxx beta
+```
 
 * Create and use a **beta/N.M.O** branch to integrate work from **master** and for each commit CI (github) will:
   - run flake8
