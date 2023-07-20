@@ -180,7 +180,6 @@ def git_project_factory(request, tmp_path):
             )
 
         def _config(self, identity: tuple[str, str]):
-            # self(["config", "init.defaultBranch", "master"])
             self(["config", "user.name", identity[0]])
             self(["config", "user.email", identity[1]])
 
@@ -196,13 +195,9 @@ def git_project_factory(request, tmp_path):
             self.workdir.mkdir(parents=True, exist_ok=True if force else False)
 
             self(["init", "-b", "master"])
-            self._config(identity or self.identity)
+            self(["commit", "-m", "initial", "--allow-empty"])
 
-            # need to create a commit to setup all refs
-            keepfile = self.workdir / ".keep"
-            keepfile.write_text("# dummy file to create the master branch")
-            self(["add", keepfile])
-            self(["commit", "-m", "initial", keepfile])
+            self._config(identity or self.identity)
 
             return self
 
@@ -231,8 +226,6 @@ def git_project_factory(request, tmp_path):
 
             repo = self.__class__(workdir=workdir, identity=self.identity, exe=self.exe)
             repo._config(self.identity)
-            # repo(["config", "user.name", self.identity[0]])
-            # repo(["config", "user.email", self.identity[1]])
             return repo
 
         def __truediv__(self, other):
