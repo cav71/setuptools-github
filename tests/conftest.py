@@ -9,7 +9,7 @@ import shutil
 import contextlib
 import collections
 import subprocess
-from typing import Union, Optional, Tuple, List, Dict, Any
+from typing import Union, Optional, Tuple, List, Dict
 
 import pytest
 
@@ -147,19 +147,19 @@ def git_project_factory(request, tmp_path):
     class GitRepo:
         def __init__(
             self,
-            workdir: Union[Path, str],
-            identity: Tuple[str, str] = ("First Last", "user@email"),
-            exe: Optional[str] = None,
-            gitdir: Optional[Union[Path, str]] = None,
+            workdir: Path | str,
+            identity: tuple[str, str] = ("First Last", "user@email"),
+            exe: str = "git",
+            gitdir: Path | str | None = None,
         ):
             self.workdir = Path(workdir).absolute()
             self.identity = identity
-            self.exe = exe or "git"
+            self.exe = exe
             self.gitdir = (
                 Path(gitdir) if gitdir else (self.workdir / ".git")
             ).absolute()
 
-        def __call__(self, cmd: Union[List[Any], Any]) -> str:
+        def __call__(self, cmd: str | Path | list[str | Path]) -> str:
             cmds = [cmd] if isinstance(cmd, str) else cmd
 
             arguments = [
@@ -179,27 +179,27 @@ def git_project_factory(request, tmp_path):
                 [str(a) for a in arguments], encoding="utf-8"
             )
 
+        def _config(self, identity: tuple[str, str]):
+            # self(["config", "init.defaultBranch", "master"])
+            self(["config", "user.name", identity[0]])
+            self(["config", "user.email", identity[1]])
+
         def init(
             self,
             force: bool = False,
-            identity: Optional[Tuple[str, str]] = None,
+            identity: tuple[str, str] | None = None,
         ) -> GitRepo:
             from shutil import rmtree
-
-            identity = self.identity if identity is None else identity
-            keepfile = self.workdir / ".keep"
 
             if force:
                 rmtree(self.workdir, ignore_errors=True)
             self.workdir.mkdir(parents=True, exist_ok=True if force else False)
 
             self(["init", "-b", "master"])
-
-            self(["config", "init.defaultBranch", "master"])
-            self(["config", "user.name", identity[0]])
-            self(["config", "user.email", identity[1]])
+            self._config(identity or self.identity)
 
             # need to create a commit to setup all refs
+            keepfile = self.workdir / ".keep"
             keepfile.write_text("# dummy file to create the master branch")
             self(["add", keepfile])
             self(["commit", "-m", "initial", keepfile])
@@ -230,8 +230,9 @@ def git_project_factory(request, tmp_path):
             )
 
             repo = self.__class__(workdir=workdir, identity=self.identity, exe=self.exe)
-            repo(["config", "user.name", self.identity[0]])
-            repo(["config", "user.email", self.identity[1]])
+            repo._config(self.identity)
+            # repo(["config", "user.name", self.identity[0]])
+            # repo(["config", "user.email", self.identity[1]])
             return repo
 
         def __truediv__(self, other):
