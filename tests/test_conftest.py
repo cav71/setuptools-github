@@ -44,3 +44,14 @@ REPO: {repo.workdir}
 
 """
     )
+
+
+def test_operation_clone(git_project_factory):
+    repo = git_project_factory().create()
+    repo1 = git_project_factory().create(clone=repo)
+
+    assert repo(["config", "user.name"]).strip() == "First Last"
+    assert repo(["config", "user.email"]).strip() == "user@email"
+
+    assert repo1(["config", "user.name"]).strip() == "First Last"
+    assert repo1(["config", "user.email"]).strip() == "user@email"

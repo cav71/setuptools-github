@@ -229,7 +229,10 @@ def git_project_factory(request, tmp_path):
                 ],
             )
 
-            return self.__class__(workdir=workdir, identity=self.identity, exe=self.exe)
+            repo = self.__class__(workdir=workdir, identity=self.identity, exe=self.exe)
+            repo(["config", "user.name", self.identity[0]])
+            repo(["config", "user.email", self.identity[1]])
+            return repo
 
         def __truediv__(self, other):
             return self.workdir.absolute() / other
