@@ -141,6 +141,9 @@ def git_project_factory(request, tmp_path):
         result = pre + txt.replace("\n", "\n" + pre) + last_eol
         return result if result.strip() else ""
 
+    def to_list_of_paths(paths: str | Path | list[str | Path]):
+        return [Path(s) for s in ([paths] if isinstance(paths, (str, Path)) else paths)]
+
     class GitRepo:
         def __init__(
             self,
@@ -249,7 +252,9 @@ def git_project_factory(request, tmp_path):
         BETA_BRANCHES = re.compile(r"/beta/(?P<ver>\d+([.]\d+)*)")
 
         def commit(
-            self, paths: Union[str, Path, List[Union[str, Path]]], message: str
+            self,
+            paths: str | Path | list[str | Path],
+            message: str,
         ) -> None:
             paths = [paths] if isinstance(paths, (Path, str)) else paths
             self(["add", *paths])
@@ -287,35 +292,40 @@ def git_project_factory(request, tmp_path):
                 remote_branches[origin].append(name)
             return local_branches, remote_branches
 
+        def revert(self, paths: str | Path | list[str | Path] | None = None):
+            sources = to_list_of_paths(paths or self.workdir)
+            self(["checkout", *sources])
+
     class Project(GitCommand):
         @property
         def initfile(self):
             return self.workdir / "src" / "__init__.py"
 
-        @property
-        def version(self):
-            return (
-                self.initfile.read_text()
-                .partition("=")[2]
-                .strip()
-                .replace("'", '"')
-                .strip('"')
-            )
+        def version(self, value=None):
+            if value is not None:
+                initial = not self.initfile.exists()
+                self.initfile.parent.mkdir(parents=True, exist_ok=True)
+                self.initfile.write_text(f'__version__ = "{value}"\n')
+                self.commit(
+                    [self.initfile], "initial commit" if initial else "update version"
+                )
+
+            if not self.initfile.exists():
+                return None
+
+            lines = [
+                line.partition("=")[2].strip().strip("'").strip('"')
+                for line in self.initfile.read_text().split("\n")
+                if line.strip().startswith("__version__")
+            ]
+            return lines[0] if lines else None
 
         def create(self, version=None, clone=None, force=False):
             if clone:
                 clone.clone(self.workdir, force=force)
             else:
                 self.init(force=force)
-
-            if version is not None:
-                self.initfile.parent.mkdir(parents=True, exist_ok=True)
-                self.initfile.write_text(
-                    f"""
-    __version__ = "{version}"
-""".lstrip()
-                )
-                self.commit([self.initfile], "initial commit")
+            self.version(version)
             return self
 
     def id_generator(size=6):

@@ -22,6 +22,18 @@ GITHUB = {
 }
 
 
+def T(txt):
+    from textwrap import dedent
+    txt = dedent(txt)
+    if txt.startswith("\n"):
+        txt = txt[1:]
+    return txt
+
+
+def T1(txt):
+    return T(txt).rstrip("\n")
+
+
 def test_abort_exception():
     "test the AbortExecution exception"
     a = tools.AbortExecution(
@@ -273,16 +285,42 @@ __hash__ = "5547365c82"
 
 
 def test_e2e(git_project_factory):
-    repo = git_project_factory().create("0.0.0")
+    repo = git_project_factory().create()
 
-    assert repo.initfile.exists()
+    pytest.raises(tools.MissingVariable, tools.update_version, repo.initfile, None)
+
+    # adds a new version file on the master branch
     assert repo.branch() == "master"
-    assert tools.get_module_var(repo.initfile) == "0.0.0"
+    assert repo.version("0.0.4") == "0.0.4"
+    assert repo.initfile.read_text() == T("""
+    __version__ = "0.0.4"
+    """)
+
+    # update the local version (manual build)
+    assert tools.update_version(repo.initfile, None) == "0.0.4"
+    assert tools.update_version(repo.initfile, GITHUB["master"]) == "0.0.4"
+    assert repo.initfile.read_text() == T1("""
+    __version__ = "0.0.4"
+    __hash__ = "2169f90c"
+    """)
+
+    # branch for beta
+    repo.branch("beta/0.0.4", "master")
+    assert repo.branch() == "beta/0.0.4"
 
     tools.update_version(repo.initfile, None)
-    assert tools.get_module_var(repo.initfile) == "0.0.0"
+    repo.revert()
+    assert repo.version() == "0.0.4"
 
-    repo.branch("beta/0.0.0")
-    assert tools.get_module_var(repo.initfile) == "0.0.0"
+    assert tools.update_version(repo.initfile, GITHUB["beta"]) == "0.0.4b8"
+    repo(["commit", "-m", "change", repo.initfile])
+    assert repo.version() == "0.0.4b8"
 
-    assert tools.update_version(repo.initfile, None) == "0.0.0b0"
+    # branch/tag for release
+    repo.branch("release/0.0.3", "master")
+    assert repo.branch() == "release/0.0.3"
+    repo.version("0.0.3")
+
+    tools.update_version(repo.initfile, None)
+    assert repo.version() == "0.0.3"
+    assert tools.update_version(repo.initfile, GITHUB["release"]) == "0.0.3"
