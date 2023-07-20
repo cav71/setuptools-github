@@ -33,42 +33,6 @@ def cli():
         yield Namespace(**mcks)
 
 
-def test_extract_beta_branches(git_project_factory):
-    "test the branch and tag extraction function"
-    from pygit2 import Repository
-
-    repo = git_project_factory("test_check_version-repo").create("0.0.0")
-    repo1 = git_project_factory("test_check_version-repo1").create(clone=repo)
-
-    repo.branch("beta/0.0.3")
-    repo(["tag", "-m", "release", "release/0.0.3"])
-    repo.branch("beta/0.0.4")
-    repo(["tag", "-m", "release", "release/0.0.4"])
-    repo1.branch("beta/0.0.2")
-
-    project = git_project_factory().create(clone=repo)
-    project.branch("beta/0.0.1", "origin/master")
-    project.branch("master", "origin/master")
-
-    project(["remote", "add", "repo1", repo1.workdir])
-    project(["fetch", "--all"])
-
-    local_branches, remote_branches, tags = [
-        *project.branches(project.BETA_BRANCHES),
-        project(["tag", "-l"]).split(),
-    ]
-
-    repo = Repository(project.workdir)
-    assert (local_branches, remote_branches, tags) == sr.extract_beta_branches(repo)
-
-    assert local_branches == ["beta/0.0.1", "beta/0.0.4"]
-    assert remote_branches == {
-        "origin": ["beta/0.0.3", "beta/0.0.4"],
-        "repo1": ["beta/0.0.2"],
-    }
-    assert tags == ["release/0.0.3", "release/0.0.4"]
-
-
 def test_start_release_repo_has_modifications(cli, git_project_factory):
     "verifies there are no local modified files"
     project = git_project_factory().create()
@@ -267,7 +231,7 @@ def test_start_release_safe_release_cli(cli, git_project_factory):
     "test the cli usage for a release up to the release execution"
 
     project = git_project_factory().create("0.0.0")
-    assert (project.branch(), project.version) == ("master", "0.0.0")
+    assert (project.branch(), project.version()) == ("master", "0.0.0")
 
     # we start on master (eg. we cannot start a release)
     options = sr.parse_args(
@@ -286,7 +250,7 @@ def test_start_release_safe_release_cli(cli, git_project_factory):
 
     # we start a release from a named branch
     project.branch("beta/0.0.0")
-    assert (project.branch(), project.version) == ("beta/0.0.0", "0.0.0")
+    assert (project.branch(), project.version()) == ("beta/0.0.0", "0.0.0")
     options = sr.parse_args(
         ["-w", str(project.workdir), "release", str(project.initfile)], testmode=True
     )
@@ -297,7 +261,7 @@ def test_start_release_safe_release_cli(cli, git_project_factory):
 def test_start_release_e2e(git_project_factory):
     "full end2end walkthrough scenario"
     project = git_project_factory().create("0.0.1")
-    assert (project.branch(), project.version) == ("master", "0.0.1")
+    assert (project.branch(), project.version()) == ("master", "0.0.1")
 
     # creating a first branch (note as we won't bump 0.0.1 because is
     # the first beta branch)
@@ -305,7 +269,7 @@ def test_start_release_e2e(git_project_factory):
         ["-w", str(project.workdir), "micro", str(project.initfile)], testmode=True
     )
     sr.run(**options)
-    assert (project.branch(), project.version) == ("beta/0.0.1", "0.0.1")
+    assert (project.branch(), project.version()) == ("beta/0.0.1", "0.0.1")
 
     # try a beta release from a beta branch should fail
     exc = pytest.raises(tools.AbortExecution, sr.run, **options).value
@@ -313,13 +277,13 @@ def test_start_release_e2e(git_project_factory):
 
     # trying a second branch
     project(["checkout", "master"])
-    assert (project.branch(), project.version) == ("master", "0.0.1")
+    assert (project.branch(), project.version()) == ("master", "0.0.1")
 
     options = sr.parse_args(
         ["-w", str(project.workdir), "micro", str(project.initfile)], testmode=True
     )
     sr.run(**options)
-    assert (project.branch(), project.version) == ("beta/0.0.2", "0.0.2")
+    assert (project.branch(), project.version()) == ("beta/0.0.2", "0.0.2")
 
     # again we won't be able to start a new branch from a non master branch
     exc = pytest.raises(tools.AbortExecution, sr.run, **options).value
@@ -331,14 +295,14 @@ def test_start_release_e2e(git_project_factory):
         ["-w", str(project.workdir), "micro", str(project.initfile)], testmode=True
     )
     sr.run(**options)
-    assert (project.branch(), project.version) == ("beta/0.0.3", "0.0.3")
+    assert (project.branch(), project.version()) == ("beta/0.0.3", "0.0.3")
 
     project(["checkout", "master"])
     options = sr.parse_args(
         ["-w", str(project.workdir), "micro", str(project.initfile)], testmode=True
     )
     sr.run(**options)
-    assert (project.branch(), project.version) == ("beta/0.0.4", "0.0.4")
+    assert (project.branch(), project.version()) == ("beta/0.0.4", "0.0.4")
 
     # let's finally release 0.0.3 here (first we verify we cannot release
     # from a non master branch)

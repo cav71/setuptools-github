@@ -91,7 +91,7 @@ hint:
 
 
 def test_check_version(git_project_factory):
-    from setuptools_github.start_release import extract_beta_branches
+    from setuptools_github.scm import extract_beta_branches_and_release_tags
 
     repo = git_project_factory("test_check_version-repo").create("0.0.0")
     repo1 = git_project_factory("test_check_version-repo1").create(clone=repo)
@@ -116,10 +116,14 @@ def test_check_version(git_project_factory):
     from pygit2 import Repository
 
     repo = Repository(project.workdir)
-    assert (local_branches, remote_branches, tags) == extract_beta_branches(repo)
+    assert (
+        local_branches,
+        remote_branches,
+        tags,
+    ) == extract_beta_branches_and_release_tags(repo)
 
     assert project.branch() == "master"
-    assert project.version == "0.0.0"
+    assert project.version() == "0.0.0"
 
     exc = pytest.raises(
         tools.AbortExecution,
@@ -183,7 +187,7 @@ hint:
     # release checks
     project(["checkout", "beta/0.0.4"])
     project(["merge", "master"])
-    assert (project.branch(), project.version) == ("beta/0.0.4", "0.0.4")
+    assert (project.branch(), project.version()) == ("beta/0.0.4", "0.0.4")
 
     exc = pytest.raises(
         tools.AbortExecution,
