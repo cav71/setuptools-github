@@ -8,11 +8,14 @@ from typing import Any
 from . import tools
 
 
-def parse_args(args: str | None = None, testmode: bool = False) -> dict[str, Any]:
+def parse_args(
+    args: str | None = None, doc: str | None = None, testmode: bool = False
+) -> dict[str, Any]:
     """parses args from the command line
 
     Args:
         args: command line arguments or None to pull from sys.argv
+        doc: text to use in cli description
         testmode: internal flag, if set will not SystemExit but will
                   raises tools.AbortExecution
     """
@@ -23,8 +26,9 @@ def parse_args(args: str | None = None, testmode: bool = False) -> dict[str, Any
     ):
         pass
 
+    description, _, epilog = (doc or "").partition("\n")
     parser = argparse.ArgumentParser(
-        formatter_class=F, description=__doc__, prog="AAAA"
+        formatter_class=F, description=description, epilog=epilog
     )
 
     parser.add_argument("-n", "--dry-run", dest="dryrun", action="store_true")
@@ -41,7 +45,7 @@ def parse_args(args: str | None = None, testmode: bool = False) -> dict[str, Any
         default=Path("."),
         type=Path,
     )
-    parser.add_argument("mode", choices=["micro", "minor", "major", "release"])
+    parser.add_argument("mode", choices=["micro", "minor", "major", "beta"])
     parser.add_argument("initfile", metavar="__init__.py", type=Path)
 
     options = parser.parse_args(args)
