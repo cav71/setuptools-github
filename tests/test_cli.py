@@ -22,3 +22,12 @@ reason:
 hint:
   create a git branch\
 """
+
+
+def test_docstring():
+    @cli.cli()
+    def hello(options):
+        "this is a docstring"
+        pass
+
+    assert hello.__doc__ == "this is a docstring"

@@ -81,7 +81,9 @@ def cli(
     | None = None,
     doc: str | None = None,
 ):
+    @functools.wraps(cli)
     def _fn(main: Callable[[argparse.Namespace], Any]):
+        @functools.wraps(main)
         def _fn1(args: None | list[str] = None) -> Any:
             try:
 
