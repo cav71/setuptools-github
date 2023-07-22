@@ -68,7 +68,6 @@ def main(options) -> None:
         log.info("creating branch '%s'", f"/beta/{version}")
         commit = options.repo.revparse_single("HEAD")
         options.repo.branches.local.create(f"/beta/{version}", commit)
-        options.repo.branches.local.delete(f"/beta/{version}")
     else:
         options.error(f"unsupported mode {options.mode=}")
         raise RuntimeError(f"unsupported mode {options.mode=}")
