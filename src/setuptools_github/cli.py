@@ -1,77 +1,66 @@
 from __future__ import annotations
-import sys
 import argparse
 import logging
 import functools
-from typing import Any
-
+import sys
+from typing import Any, Callable
 from . import tools
 
 
-def parse_args(
-    args: str | None = None, doc: str | None = None, testmode: bool = False
-) -> dict[str, Any]:
+ErrorFn = Callable[[str, str | None, str | None], None] | None
+
+
+class AbortExecution(Exception):
+    @staticmethod
+    def _strip(txt):
+        txt = txt or ""
+        txt = txt[1:] if txt.startswith("\n") else txt
+        txt = tools.indent(txt, pre="")
+        return txt[:-1] if txt.endswith("\n") else txt
+
+    def __init__(
+        self,
+        message: str,
+        explain: str | None = None,
+        hint: str | None = None,
+        usage: str | None = None,
+    ):
+        self.message = message.strip()
+        self.explain = explain
+        self.hint = hint
+        self.usage = usage
+
+    def __str__(self):
+        out = []
+        if self.usage:
+            out.extend(self.usage.strip().split("\n"))
+        if self.message:
+            out.extend(self._strip(self.message).split("\n"))
+        if self.explain:
+            out.append("reason:")
+            out.extend(tools.indent(self.explain).split("\n"))
+        if self.hint:
+            out.append("hint:")
+            out.extend(tools.indent(self.hint).split("\n"))
+        return "\n".join((line.strip() if not line.strip() else line) for line in out)
+
+
+def _add_arguments(
+    parser: argparse.ArgumentParser,
+) -> None:
     """parses args from the command line
 
     Args:
         args: command line arguments or None to pull from sys.argv
         doc: text to use in cli description
-        testmode: internal flag, if set will not SystemExit but will
-                  raises tools.AbortExecution
     """
-    from pathlib import Path
-
-    class F(
-        argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter
-    ):
-        pass
-
-    description, _, epilog = (doc or "").partition("\n")
-    parser = argparse.ArgumentParser(
-        formatter_class=F, description=description, epilog=epilog
-    )
-
     parser.add_argument("-n", "--dry-run", dest="dryrun", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
-    parser.add_argument("--master", default="master", help="the 'master' branch")
 
-    # parser.add_argument("-f", "--force", action="store_true")
-    # parser.add_argument("--no-checks", action="store_true")
 
-    parser.add_argument(
-        "-w",
-        "--workdir",
-        help="git working dir",
-        default=Path("."),
-        type=Path,
-    )
-    parser.add_argument("mode", choices=["micro", "minor", "major", "beta"])
-    parser.add_argument("initfile", metavar="__init__.py", type=Path)
-
-    options = parser.parse_args(args)
-
-    def error(message, explain="", hint="", parser=None, testmode=False):
-        out = []
-        if parser:
-            out.extend(tools.indent(parser.format_usage()).split("\n"))
-        if message:
-            out.extend(tools.indent(message).split("\n"))
-        if explain:
-            out.append("reason:")
-            out.extend(tools.indent(explain).split("\n"))
-        if hint:
-            out.append("hint:")
-            out.extend(tools.indent(hint).split("\n"))
-
-        if testmode:
-            raise tools.AbortExecution(message, explain, hint)
-        else:
-            print()
-            print("\n".join(out), file=sys.stderr)
-            raise SystemExit(2)
-
-    options.error = functools.partial(error, parser=parser, testmode=testmode)
-
+def _process_options(
+    options: argparse.Namespace, errorfn: ErrorFn = None
+) -> argparse.Namespace | None:
     logging.basicConfig(
         format="%(levelname)s:%(name)s:(dry-run) %(message)s"
         if options.dryrun
@@ -83,4 +72,57 @@ def parse_args(
         "verbose",
     ]:
         delattr(options, d)
-    return options.__dict__
+    return options
+
+
+def cli(
+    add_arguments: Callable[[argparse.ArgumentParser], None] | None = None,
+    process_options: Callable[[argparse.Namespace, ErrorFn], argparse.Namespace | None]
+    | None = None,
+    doc: str | None = None,
+):
+    def _fn(main: Callable[[argparse.Namespace], Any]):
+        def _fn1(args: None | list[str] = None) -> Any:
+            try:
+
+                class ParserFormatter(
+                    argparse.ArgumentDefaultsHelpFormatter,
+                    argparse.RawDescriptionHelpFormatter,
+                ):
+                    pass
+
+                description, _, epilog = (doc or "").partition("\n")
+                parser = argparse.ArgumentParser(
+                    formatter_class=ParserFormatter,
+                    description=description,
+                    epilog=epilog,
+                )
+                _add_arguments(parser)
+                if add_arguments:
+                    add_arguments(parser)
+
+                options = parser.parse_args(args=args)
+
+                def error(
+                    message: str,
+                    explain: str = "",
+                    hint: str = "",
+                    usage: str | None = None,
+                ):
+                    raise AbortExecution(message, explain, hint, usage)
+
+                errorfn: ErrorFn = functools.partial(error, usage=parser.format_usage())
+
+                options = _process_options(options, errorfn) or options
+                if process_options:
+                    options = process_options(options, errorfn) or options
+                return main(options)
+            except AbortExecution as exc:
+                print(str(exc), file=sys.stderr)
+                raise SystemExit(2)
+            except Exception:
+                raise
+
+        return _fn1
+
+    return _fn
