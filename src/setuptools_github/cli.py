@@ -114,10 +114,12 @@ def cli(
                     raise AbortExecution(message, explain, hint, usage)
 
                 errorfn: ErrorFn = functools.partial(error, usage=parser.format_usage())
+                options.error = errorfn
 
                 options = _process_options(options, errorfn) or options
                 if process_options:
                     options = process_options(options, errorfn) or options
+
                 return main(options)
             except AbortExecution as exc:
                 print(str(exc), file=sys.stderr)
