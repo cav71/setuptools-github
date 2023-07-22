@@ -1,4 +1,4 @@
-.github/workflows/master.ymlname: Beta build
+name: Beta build
 
 on:
   push:
