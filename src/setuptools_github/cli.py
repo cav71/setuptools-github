@@ -59,7 +59,7 @@ def _add_arguments(
 
 
 def _process_options(
-    options: argparse.Namespace, errorfn: ErrorFn = None
+    options: argparse.Namespace, errorfn: ErrorFn
 ) -> argparse.Namespace | None:
     logging.basicConfig(
         format="%(levelname)s:%(name)s:(dry-run) %(message)s"

@@ -70,7 +70,8 @@ setup(
 
 **Copy the github actions**
 
-Copy all github action files from [workflows](https://github.com/cav71/setuptools-github/tree/release/0.2.2/.github/workflows)
+Copy all github action files from 
+[workflows](https://github.com/cav71/setuptools-github/tree/release/0.3.0/.github/workflows)
 
 ## Development
 Once the setup is done, the workflow is rather simple.
@@ -83,10 +84,11 @@ Commit into the **master** branch and for each commit CI (github) will:
     (see *.github/workflows/master.yml*)
 
 ### /beta/N.M.O
-To create a new beta branch:
+Create a new beta branch to start creating packages on PyPi:
 ```bash
-python -m xxxx beta
+setuptools-github src/package/__init__.py make-beta
 ```
+(assuming src/package/__init__.py contains the __version__ variable)
 
 * Create and use a **beta/N.M.O** branch to integrate work from **master** and for each commit CI (github) will:
   - run flake8
