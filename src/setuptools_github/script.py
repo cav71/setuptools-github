@@ -14,7 +14,7 @@ import logging
 from pathlib import Path
 import argparse
 from . import cli, tools
-import pygit2
+import pygit2  # type: ignore
 
 
 log = logging.getLogger(__name__)

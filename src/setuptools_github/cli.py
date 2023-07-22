@@ -3,11 +3,13 @@ import argparse
 import logging
 import functools
 import sys
-from typing import Any, Callable
+from typing import Any, Callable, Protocol
 from . import tools
 
 
-ErrorFn = Callable[[str, str | None, str | None], None] | None
+class ErrorFn(Protocol):
+    def __call__(self, message: str, explain: str | None, hint: str | None) -> None:
+        ...
 
 
 class AbortExecution(Exception):
