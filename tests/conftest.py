@@ -9,7 +9,8 @@ import shutil
 import contextlib
 import collections
 import subprocess
-from typing import Union, Optional, Tuple, List, Dict
+import dataclasses as dc
+from typing import Union, Optional
 
 import pytest
 
@@ -101,9 +102,19 @@ def scripter(request, tmp_path_factory, datadir):
     return Scripter(pathlib.Path(request.module.__file__).parent, datadir)
 
 
-###################
-# GIT TEST HELPER #
-###################
+##########################################################
+# GIT TEST HELPER                                        #
+#                                                        #
+#   def test(git_project_factory):                       #
+#       repo = git_project_factory().create()            #
+#       # clone from repo                                #
+#       repo1 = git_project_factory().create(clone=repo) #
+##########################################################
+
+@dc.dataclass
+class GitRepoBranches:
+    local: list[str]
+    remote: list[str]
 
 
 @pytest.fixture(scope="function")
@@ -141,8 +152,13 @@ def git_project_factory(request, tmp_path):
         result = pre + txt.replace("\n", "\n" + pre) + last_eol
         return result if result.strip() else ""
 
-    def to_list_of_paths(paths: str | Path | list[str | Path]):
+    def to_list_of_paths(paths: str | Path | list[str | Path]) -> list[Path]:
         return [Path(s) for s in ([paths] if isinstance(paths, (str, Path)) else paths)]
+
+    class GitRepoBranches:
+        def __init__(self, local: list[str], remote: list[str]):
+            self.local = local
+            self.remote = remote
 
     class GitRepo:
         def __init__(
@@ -264,33 +280,39 @@ def git_project_factory(request, tmp_path):
             self(["checkout", "-b", name, "--track", origin])
             return old
 
-        def branches(
-            self, expr: Optional[Union[str, bool, re.Pattern]] = None
-        ) -> Tuple[List[str], Dict[str, List[str]]]:
-            branches = self(["branch", "-a", "--format", "%(refname)"]).split()
-            matchobj = re.compile(expr) if isinstance(expr, str) else expr
-
-            if matchobj:
-                branches = [name for name in branches if matchobj.search(name)]
-
-            n = len("refs/heads/")
-            local_branches = [
-                name[n:] for name in branches if name.startswith("refs/heads/")
-            ]
-            remote_branches: Dict[str, List[str]] = {}
-            n = len("refs/remotes/")
-            for name in branches:
-                if not name.startswith("refs/remotes/"):
+        @property
+        def branches(self) -> GitRepoBranches:
+            result = GitRepoBranches([], [])
+            for line in self(["branch", "-a", "--format", "%(refname)"]).split("\n"):
+                if not line.strip():
                     continue
-                origin, _, name = name[n:].partition("/")
-                if origin not in remote_branches:
-                    remote_branches[origin] = []
-                remote_branches[origin].append(name)
-            return local_branches, remote_branches
+                if line.startswith("refs/heads/"):
+                    result.local.append(line[11:])
+                elif line.startswith("refs/remotes/"):
+                    result.remote.append(line[13:])
+                else:
+                    raise RuntimeError(f"invalid branch {line}")
+            return result
 
         def revert(self, paths: str | Path | list[str | Path] | None = None):
             sources = to_list_of_paths(paths or self.workdir)
             self(["checkout", *sources])
+
+        def status(self) -> dict[str, int]:
+            mapper = {
+                "??": 128,
+                " D": 512,
+                " M": 256,
+            }
+            result = {}
+            for line in self(["status", "--porcelain"]).split("\n"):
+                if not line.strip():
+                    continue
+                tag, filename = line[:2], line[3:]
+                value = mapper[tag]
+                if value:
+                    result[filename] = value
+            return result
 
     class Project(GitCommand):
         @property
@@ -332,6 +354,10 @@ def git_project_factory(request, tmp_path):
 
     return lambda subdir="": Project(tmp_path / (subdir or id_generator()))
     # or request.node.name
+
+#####################
+# Main flags/config #
+#####################
 
 
 def pytest_configure(config):
