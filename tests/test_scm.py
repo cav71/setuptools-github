@@ -18,16 +18,22 @@ def test_scm_pygit2_equivalence_status(git_project_factory):
     (repo.workdir / "untracked.txt").write_text("A")
 
     # add two new tracked and committed files
+    (repo.workdir / ".gitignore").write_text("ignored.txt\n")
     (repo.workdir / "modified.txt").write_text("B")
     (repo.workdir / "unchanged.txt").write_text("C")
     (repo.workdir / "deleted.txt").write_text("D")
 
-    repo.commit([
-        repo.workdir / "modified.txt",
-        repo.workdir / "unchanged.txt",
-        repo.workdir / "deleted.txt",
-    ], "initial")
+    repo.commit(
+        [
+            repo.workdir / ".gitignore",
+            repo.workdir / "modified.txt",
+            repo.workdir / "unchanged.txt",
+            repo.workdir / "deleted.txt",
+        ],
+        "initial",
+    )
 
+    (repo.workdir / "ignored.txt").write_text("E")
     (repo.workdir / "modified.txt").write_text("xxx")
     (repo.workdir / "deleted.txt").unlink()
 
@@ -35,7 +41,10 @@ def test_scm_pygit2_equivalence_status(git_project_factory):
     grepo = pygit2.Repository(repo.workdir)
 
     assert repo.status() == srepo.status()
-    assert srepo.status() == grepo.status()
+    for untracked_files in ["all", "no"]:
+        assert srepo.status(untracked_files=untracked_files) == grepo.status(
+            untracked_files=untracked_files
+        )
 
 
 def test_lookup(git_project_factory):

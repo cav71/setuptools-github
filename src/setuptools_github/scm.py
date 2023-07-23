@@ -70,9 +70,11 @@ class GitRepo:
         txt = self(["rev-parse", name])
         return GitRepoHead(name=name, target=GitRepoHead.GitRepoHeadHex(txt.strip()))
 
-    def status(self) -> dict[str, int]:
+    def status(
+        self, untracked_files: str = "all", ignored: bool = False
+    ) -> dict[str, int]:
         mapper = {
-            "??": 128,
+            "??": 128 if untracked_files == "all" else None,
             " D": 512,
             " M": 256,
         }
