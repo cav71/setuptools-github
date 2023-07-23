@@ -24,6 +24,7 @@ GITHUB = {
 
 def T(txt):
     from textwrap import dedent
+
     txt = dedent(txt)
     if txt.startswith("\n"):
         txt = txt[1:]
@@ -115,6 +116,17 @@ def test_indent():
 
     found = tools.indent(txt[1:], "..")
     assert f"\n{found}" == expected
+
+
+def test_list_of_paths():
+    from pathlib import Path
+
+    assert tools.list_of_paths([]) == []
+    assert tools.list_of_paths("hello") == [Path("hello")]
+    assert tools.list_of_paths(["hello", Path("world")]) == [
+        Path("hello"),
+        Path("world"),
+    ]
 
 
 def test_get_module_var(tmp_path):
@@ -292,17 +304,21 @@ def test_e2e(git_project_factory):
     # adds a new version file on the master branch
     assert repo.branch() == "master"
     assert repo.version("0.0.4") == "0.0.4"
-    assert repo.initfile.read_text() == T("""
+    assert repo.initfile.read_text() == T(
+        """
     __version__ = "0.0.4"
-    """)
+    """
+    )
 
     # update the local version (manual build)
     assert tools.update_version(repo.initfile, None) == "0.0.4"
     assert tools.update_version(repo.initfile, GITHUB["master"]) == "0.0.4"
-    assert repo.initfile.read_text() == T1("""
+    assert repo.initfile.read_text() == T1(
+        """
     __version__ = "0.0.4"
     __hash__ = "2169f90c"
-    """)
+    """
+    )
 
     # branch for beta
     repo.branch("beta/0.0.4", "master")

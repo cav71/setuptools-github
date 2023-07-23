@@ -83,6 +83,10 @@ def indent(txt: str, pre: str = " " * 2) -> str:
     return result if result.strip() else result.strip()
 
 
+def list_of_paths(paths: str | Path | list[str | Path]) -> list[Path]:
+    return [Path(s) for s in ([paths] if isinstance(paths, (str, Path)) else paths)]
+
+
 def get_module_var(
     path: Union[Path, str], var: str = "__version__", abort=True
 ) -> Optional[str]:
@@ -243,7 +247,7 @@ def update_version(
             "sha": repo.head.target.hex[:7],
             "run_number": 0,
         }
-        dirty = repo.status()
+        dirty = bool(repo.status())
     else:
         gdata = json.loads(github_dump) if isinstance(github_dump, str) else github_dump
         dirty = False
