@@ -24,7 +24,6 @@ setup(
     install_requires=["setuptools"],
     entry_points={
         "console_scripts": [
-            "setuptools-github-start-release=setuptools_github.start_release:main",
             "setuptools-github=setuptools_github.script:main",
         ],
     },
