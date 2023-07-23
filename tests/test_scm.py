@@ -1,7 +1,41 @@
 import subprocess
 
 import pytest
+
+try:
+    import pygit2
+except ImportError:
+    pygit2 = None
+
 from setuptools_github import scm
+
+
+@pytest.mark.skipif(not pygit2, reason="pygit2 not installed")
+def test_scm_pygit2_equivalence_status(git_project_factory):
+    repo = git_project_factory().create("0.0.0")
+
+    # add a new untracked file
+    (repo.workdir / "untracked.txt").write_text("A")
+
+    # add two new tracked and committed files
+    (repo.workdir / "modified.txt").write_text("B")
+    (repo.workdir / "unchanged.txt").write_text("C")
+    (repo.workdir / "deleted.txt").write_text("D")
+
+    repo.commit([
+        repo.workdir / "modified.txt",
+        repo.workdir / "unchanged.txt",
+        repo.workdir / "deleted.txt",
+    ], "initial")
+
+    (repo.workdir / "modified.txt").write_text("xxx")
+    (repo.workdir / "deleted.txt").unlink()
+
+    srepo = scm.GitRepo(repo.workdir)
+    grepo = pygit2.Repository(repo.workdir)
+
+    assert repo.status() == srepo.status()
+    assert srepo.status() == grepo.status()
 
 
 def test_lookup(git_project_factory):
@@ -11,12 +45,20 @@ def test_lookup(git_project_factory):
     (dstdir / "out.txt").touch()
     assert (dstdir / "out.txt").exists()
 
-    assert scm.lookup(dstdir).workdir == f"{repo.workdir}/"
+    assert str(scm.lookup(dstdir).workdir) == f"{repo.workdir}"
 
 
+@pytest.mark.skipif(not pygit2, reason="pygit2 not installed")
 def test_extract_beta_branches(git_project_factory):
     "test the branch and tag extraction function"
-    from pygit2 import Repository
+
+    def check_branches(repo):
+        srepo = scm.GitRepo(repo.workdir)
+        grepo = pygit2.Repository(repo.workdir)
+        assert set(repo.branches.local) == set(srepo.branches.local)
+        assert set(srepo.branches.local) == set(grepo.branches.local)
+        assert set(repo.branches.remote) == set(srepo.branches.remote)
+        assert set(srepo.branches.remote) == set(grepo.branches.remote)
 
     # Create a repository with two beta branches tagged
     repo = git_project_factory("test_check_version-repo").create("0.0.0")
@@ -46,6 +88,7 @@ REPO: {repo.workdir}
 
 """
     )
+    check_branches(repo)
 
     repo1 = git_project_factory("test_check_version-repo1").create(clone=repo)
     repo1.branch("beta/0.0.2")
@@ -77,6 +120,7 @@ REPO: {repo1.workdir}
 
 """
     )
+    check_branches(repo1)
 
     project = git_project_factory().create(clone=repo)
     project.branch("beta/0.0.1", "origin/master")
@@ -120,23 +164,4 @@ REPO: {project.workdir}
 
 """
     )
-    local_branches, remote_branches, tags = [
-        *project.branches(project.BETA_BRANCHES),
-        project(["tag", "-l"]).split(),
-    ]
-
-    repo = Repository(project.workdir)
-    assert (
-        local_branches,
-        remote_branches,
-        tags,
-    ) == scm.extract_beta_branches_and_release_tags(repo)
-
-    assert local_branches == [
-        "beta/0.0.1",
-    ]
-    assert remote_branches == {
-        "origin": ["beta/0.0.3", "beta/0.0.4"],
-        "repo1": ["beta/0.0.2"],
-    }
-    assert tags == ["release/0.0.3", "release/0.0.4"]
+    check_branches(project)

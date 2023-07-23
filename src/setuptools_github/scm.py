@@ -1,53 +1,99 @@
 from __future__ import annotations
-import re
+
+import dataclasses as dc
+import subprocess
+from typing import TypeAlias
 from pathlib import Path
-import pygit2  # type: ignore
-
-from . import checks
 
 
-def lookup(path: Path) -> pygit2.Repository | None:
+ListOfArgs: TypeAlias = str | Path | list[str | Path]
+
+
+@dc.dataclass
+class GitRepoBranches:
+    local: list[str]
+    remote: list[str]
+
+
+@dc.dataclass
+class GitRepoHead:
+    @dc.dataclass
+    class GitRepoHeadHex:
+        hex: str
+
+    name: str
+    target: GitRepoHeadHex
+
+
+class GitRepo:
+    def __init__(self, workdir: Path | str, exe: str = "git"):
+        self.workdir = Path(workdir).absolute()
+        self.exe = exe
+
+    def __call__(self, cmd: ListOfArgs) -> str:
+        cmds = cmd if isinstance(cmd, list) else [cmd]
+        arguments = [
+            self.exe,
+            "--work-tree",
+            str(self.workdir),
+            "--git-dir",
+            str(self.workdir / ".git"),
+            *(str(c) for c in cmds),
+        ]
+        return subprocess.check_output(arguments, encoding="utf-8")
+
+    @property
+    def branches(self) -> GitRepoBranches:
+        result = GitRepoBranches([], [])
+        for line in self(["branch", "-a", "--format", "%(refname)"]).split("\n"):
+            if not line.strip():
+                continue
+            if line.startswith("refs/heads/"):
+                result.local.append(line[11:])
+            elif line.startswith("refs/remotes/"):
+                result.remote.append(line[13:])
+            else:
+                raise RuntimeError(f"invalid branch {line}")
+        return result
+
+    @property
+    def references(self) -> list[str]:
+        return [
+            f"refs/tags/{line.strip()}"
+            for line in self(["tag", "-l"]).split("\n")
+            if line.strip()
+        ]
+
+    @property
+    def head(self):
+        name = "refs/heads/master"
+        txt = self(["rev-parse", name])
+        return GitRepoHead(name=name, target=GitRepoHead.GitRepoHeadHex(txt.strip()))
+
+    def status(self) -> dict[str, int]:
+        mapper = {
+            "??": 128,
+            " D": 512,
+            " M": 256,
+        }
+        result = {}
+        for line in self(["status", "--porcelain"]).split("\n"):
+            if not line.strip():
+                continue
+            tag, filename = line[:2], line[3:]
+            value = mapper[tag]
+            if value:
+                result[filename] = value
+        return result
+
+
+def lookup(path: Path) -> GitRepo | None:
     cur = path
     found = False
     while not found:
         if (cur / ".git").exists():
-            return pygit2.Repository(cur)
+            return GitRepo(cur)
         if str(cur) == cur.root:
             break
         cur = cur.parent
     return None
-
-
-def extract_beta_branches_and_release_tags(
-    repo: pygit2.Repository,
-) -> tuple[list[str], dict[str, list[str]], list[str]]:
-    """extracts the beta branches (local and remotes) and release tags
-
-     This function will extract all the 'beta' branches (eg. with the beta/N(.N)* form)
-     and the release tags (eg. with release/N(.N)* form) from it.
-
-    Examples:
-         >>> extract_beta_branches_and_release_tags(pygit2.Repository(.. some path))
-         (
-             ['beta/0.0.1', 'beta/0.0.4'],  # local branches
-             {'origin': ['beta/0.0.3', 'beta/0.0.4'], 'repo1': ['beta/0.0.2']},
-             ['release/0.0.3', 'release/0.0.4']
-         )
-    """
-    tagre = re.compile(r"^refs/tags/release/")
-    local_branches = []
-    remote_branches: dict[str, list[str]] = {}
-    for name in repo.branches.local:
-        if checks.BETAEXPR.search(name):
-            local_branches.append(name)
-
-    for name in repo.branches.remote:
-        if checks.BETAEXPR.search(name):
-            origin, _, name = name.partition("/")
-            if origin not in remote_branches:
-                remote_branches[origin] = []
-            remote_branches[origin].append(name)
-
-    pre = len("refs/tags/")
-    tags = [name[pre:] for name in repo.references if tagre.search(name)]
-    return local_branches, remote_branches, tags
