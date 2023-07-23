@@ -8,7 +8,7 @@ from pathlib import Path
 from typing_extensions import TypeAlias
 from typing import Union
 
-ListOfArgs: TypeAlias = Union[str, Path, list[str | Path]]
+ListOfArgs: TypeAlias = Union[str, Path, list[Union[str, Path]]]
 
 
 @dc.dataclass
