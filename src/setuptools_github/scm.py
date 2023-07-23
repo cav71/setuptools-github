@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import dataclasses as dc
 import subprocess
-from typing_extensions import TypeAlias
 from pathlib import Path
 
 
-ListOfArgs: TypeAlias = str | Path | list[str | Path]
+from typing_extensions import TypeAlias
+from typing import Union
+
+ListOfArgs: TypeAlias = Union[str, Path, list[str | Path]]
 
 
 @dc.dataclass
