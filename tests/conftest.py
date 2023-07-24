@@ -14,6 +14,9 @@ from typing import Union, Optional
 
 import pytest
 
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "src"))
+from setuptools_github import scm  # noqa F401,E402
+
 
 @pytest.fixture()
 def datadir(request):
@@ -111,12 +114,6 @@ def scripter(request, tmp_path_factory, datadir):
 #       repo1 = git_project_factory().create(clone=repo) #
 ##########################################################
 
-@dc.dataclass
-class GitRepoBranches:
-    local: list[str]
-    remote: list[str]
-
-
 @pytest.fixture(scope="function")
 def git_project_factory(request, tmp_path):
     """fixture to generate git working repositories
@@ -155,12 +152,39 @@ def git_project_factory(request, tmp_path):
     def to_list_of_paths(paths: str | Path | list[str | Path]) -> list[Path]:
         return [Path(s) for s in ([paths] if isinstance(paths, (str, Path)) else paths)]
 
+    @dc.dataclass
     class GitRepoBranches:
-        def __init__(self, local: list[str], remote: list[str]):
-            self.local = local
-            self.remote = remote
+        local: list[str]
+        remote: list[str]
+
+    @dc.dataclass
+    class GitRepoHead:
+        @dc.dataclass
+        class GitRepoHeadHex:
+            hex: str
+
+        name: str
+        target: GitRepoHeadHex
 
     class GitRepo:
+        def __init__(self, workdir: Path | str, exe: str = "git"):
+            self.workdir = Path(workdir).absolute()
+            self.exe = exe
+
+        # def __call__(self, cmd: ListOfArgs) -> str:
+        def __call__(self, cmd) -> str:
+            cmds = cmd if isinstance(cmd, list) else [cmd]
+            arguments = [
+                self.exe,
+                "--work-tree",
+                str(self.workdir),
+                "--git-dir",
+                str(self.workdir / ".git"),
+                *(str(c) for c in cmds),
+            ]
+            return subprocess.check_output(arguments, encoding="utf-8")
+
+    class GitRepoBase:
         def __init__(
             self,
             workdir: Path | str,
@@ -260,7 +284,7 @@ def git_project_factory(request, tmp_path):
             print("\n".join([line.rstrip() for line in lines.split("\n")]), file=buf)
             return buf.getvalue()
 
-    class GitCommand(GitRepo):
+    class GitCommand(GitRepoBase):
         BETA_BRANCHES = re.compile(r"/beta/(?P<ver>\d+([.]\d+)*)")
 
         def commit(

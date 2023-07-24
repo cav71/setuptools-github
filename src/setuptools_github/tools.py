@@ -258,6 +258,8 @@ def update_version(
     expr1 = re.compile(r"(?P<version>\d+([.]\d+)*)(?P<num>b\d+)?$")
 
     if match := expr.search(gdata["ref"]):
+        # setuptools double calls the update_version,
+        # this fixes the issue
         match1 = expr1.search(current or "")
         if not match1:
             raise InvalidGithubReference(f"cannot parse current version '{current}'")

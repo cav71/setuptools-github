@@ -1,5 +1,6 @@
 from __future__ import annotations
-
+import io
+import re
 import dataclasses as dc
 import subprocess
 from pathlib import Path
@@ -43,6 +44,22 @@ class GitRepo:
             *(str(c) for c in cmds),
         ]
         return subprocess.check_output(arguments, encoding="utf-8")
+
+    def dumps(self, mask=False) -> str:
+        from setuptools_github.tools import indent
+
+        lines = f"REPO: {self.workdir}"
+        lines += "\n [status]\n" + indent(self(["status"]))
+        branches = self(["branch", "-avv"])
+        if mask:
+            branches = re.sub(r"(..\w\s+)\w{7}(\s+.*)", r"\1ABCDEFG\2", branches)
+        lines += "\n [branch]\n" + indent(branches)
+        lines += "\n [tags]\n" + indent(self(["tag", "-l"]))
+        lines += "\n [remote]\n" + indent(self(["remote", "-v"]))
+
+        buf = io.StringIO()
+        print("\n".join([line.rstrip() for line in lines.split("\n")]), file=buf)
+        return buf.getvalue()
 
     @property
     def branches(self) -> GitRepoBranches:
