@@ -68,9 +68,9 @@ class GitRepo:
 
     @property
     def head(self):
-        name = "refs/heads/master"
-        txt = self(["rev-parse", name])
-        return GitRepoHead(name=name, target=GitRepoHead.GitRepoHeadHex(txt.strip()))
+        name = self(["symbolic-ref", "HEAD"]).strip()
+        txt = self(["rev-parse", name]).strip()
+        return GitRepoHead(name=name, target=GitRepoHead.GitRepoHeadHex(txt))
 
     def status(
         self, untracked_files: str = "all", ignored: bool = False
