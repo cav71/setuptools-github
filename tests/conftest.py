@@ -1,16 +1,12 @@
 from __future__ import annotations
 
 import os
-import io
-import re
 import sys
 import pathlib
 import shutil
 import contextlib
 import collections
 import subprocess
-import dataclasses as dc
-from typing import Union, Optional
 
 import pytest
 
@@ -132,102 +128,11 @@ def git_project_factory(request, tmp_path):
         assert repo.workdir != repo1.workdir
 
     """
-    from pathlib import Path
-
-    def indent(txt, pre=" " * 2):
-        "simple text indentation"
-
-        from textwrap import dedent
-
-        txt = dedent(txt)
-        if txt.endswith("\n"):
-            last_eol = "\n"
-            txt = txt[:-1]
-        else:
-            last_eol = ""
-
-        result = pre + txt.replace("\n", "\n" + pre) + last_eol
-        return result if result.strip() else ""
-
-    def to_list_of_paths(paths: str | Path | list[str | Path]) -> list[Path]:
-        return [Path(s) for s in ([paths] if isinstance(paths, (str, Path)) else paths)]
-
-    @dc.dataclass
-    class GitRepoBranches:
-        local: list[str]
-        remote: list[str]
-
-    @dc.dataclass
-    class GitRepoHead:
-        @dc.dataclass
-        class GitRepoHeadHex:
-            hex: str
-
-        name: str
-        target: GitRepoHeadHex
-
-    class GitRepo:
-        def __init__(self, workdir: Path | str, exe: str = "git"):
-            self.workdir = Path(workdir).absolute()
-            self.exe = exe
-
-        # def __call__(self, cmd: ListOfArgs) -> str:
-        def __call__(self, cmd) -> str:
-            cmds = cmd if isinstance(cmd, list) else [cmd]
-            arguments = [
-                self.exe,
-                "--work-tree",
-                str(self.workdir),
-                "--git-dir",
-                str(self.workdir / ".git"),
-                *(str(c) for c in cmds),
-            ]
-            return subprocess.check_output(arguments, encoding="utf-8")
-
-    class GitRepoBase:
-        def __init__(
-            self,
-            workdir: Path | str,
-            identity: tuple[str, str] = ("First Last", "user@email"),
-            exe: str = "git",
-            gitdir: Path | str | None = None,
-        ):
-            self.workdir = Path(workdir).absolute()
-            self.identity = identity
-            self.exe = exe
-            self.gitdir = (
-                Path(gitdir) if gitdir else (self.workdir / ".git")
-            ).absolute()
-
-        def __call__(self, cmd: str | Path | list[str | Path]) -> str:
-            cmds = [cmd] if isinstance(cmd, str) else cmd
-
-            arguments = [
-                self.exe,
-            ]
-            if str(cmds[0]) != "clone":
-                arguments.extend(
-                    [
-                        "--git-dir",
-                        self.gitdir,
-                        "--work-tree",
-                        self.workdir,
-                    ]
-                )
-            arguments.extend(cmds)
-            return subprocess.check_output(
-                [str(a) for a in arguments], encoding="utf-8"
-            )
-
-        def _config(self, identity: tuple[str, str]):
-            self(["config", "user.name", identity[0]])
-            self(["config", "user.email", identity[1]])
-
+    class GitRepoBase(scm.GitRepo):
         def init(
             self,
             force: bool = False,
-            identity: tuple[str, str] | None = None,
-        ) -> GitRepo:
+        ) -> GitRepoBase:
             from shutil import rmtree
 
             if force:
@@ -235,110 +140,13 @@ def git_project_factory(request, tmp_path):
             self.workdir.mkdir(parents=True, exist_ok=True if force else False)
 
             self(["init", "-b", "master"])
-            self._config(identity or self.identity)
+            self(["config", "user.name", "First Last"])
+            self(["config", "user.email", "user@email"])
 
             self(["commit", "-m", "initial", "--allow-empty"])
             return self
 
-        def clone(
-            self,
-            dest: Union[str, Path],
-            force=False,
-            branch: Optional[str] = None,
-        ) -> GitRepo:
-            from shutil import rmtree
-
-            workdir = Path(dest).absolute()
-            if force:
-                rmtree(workdir, ignore_errors=True)
-            if workdir.exists():
-                raise ValueError(f"target directory present {workdir}")
-
-            self(
-                [
-                    "clone",
-                    *(["--branch", branch] if branch else []),
-                    self.workdir.absolute(),
-                    workdir.absolute(),
-                ],
-            )
-
-            repo = self.__class__(workdir=workdir, identity=self.identity, exe=self.exe)
-            repo._config(self.identity)
-            return repo
-
-        def __truediv__(self, other):
-            return self.workdir.absolute() / other
-
-        def dumps(self, mask=False) -> str:
-            lines = f"REPO: {self.workdir}"
-            lines += "\n [status]\n" + indent(self(["status"]))
-            branches = self(["branch", "-avv"])
-            if mask:
-                branches = re.sub(r"(..\w\s+)\w{7}(\s+.*)", r"\1ABCDEFG\2", branches)
-            lines += "\n [branch]\n" + indent(branches)
-            lines += "\n [tags]\n" + indent(self(["tag", "-l"]))
-            lines += "\n [remote]\n" + indent(self(["remote", "-v"]))
-
-            buf = io.StringIO()
-            print("\n".join([line.rstrip() for line in lines.split("\n")]), file=buf)
-            return buf.getvalue()
-
-    class GitCommand(GitRepoBase):
-        BETA_BRANCHES = re.compile(r"/beta/(?P<ver>\d+([.]\d+)*)")
-
-        def commit(
-            self,
-            paths: str | Path | list[str | Path],
-            message: str,
-        ) -> None:
-            paths = [paths] if isinstance(paths, (Path, str)) else paths
-            self(["add", *paths])
-            self(["commit", "-m", message, *paths])
-
-        def branch(self, name: Optional[str] = None, origin: str = "master") -> str:
-            if not name:
-                return self(["rev-parse", "--abbrev-ref", "HEAD"]).strip()
-            assert origin or origin is None
-            old = self.branch()
-            self(["checkout", "-b", name, "--track", origin])
-            return old
-
-        @property
-        def branches(self) -> GitRepoBranches:
-            result = GitRepoBranches([], [])
-            for line in self(["branch", "-a", "--format", "%(refname)"]).split("\n"):
-                if not line.strip():
-                    continue
-                if line.startswith("refs/heads/"):
-                    result.local.append(line[11:])
-                elif line.startswith("refs/remotes/"):
-                    result.remote.append(line[13:])
-                else:
-                    raise RuntimeError(f"invalid branch {line}")
-            return result
-
-        def revert(self, paths: str | Path | list[str | Path] | None = None):
-            sources = to_list_of_paths(paths or self.workdir)
-            self(["checkout", *sources])
-
-        def status(self) -> dict[str, int]:
-            mapper = {
-                "??": 128,
-                " D": 512,
-                " M": 256,
-            }
-            result = {}
-            for line in self(["status", "--porcelain"]).split("\n"):
-                if not line.strip():
-                    continue
-                tag, filename = line[:2], line[3:]
-                value = mapper[tag]
-                if value:
-                    result[filename] = value
-            return result
-
-    class Project(GitCommand):
+    class Project(GitRepoBase):
         @property
         def initfile(self):
             return self.workdir / "src" / "__init__.py"
