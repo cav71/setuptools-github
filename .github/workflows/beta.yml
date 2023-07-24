@@ -75,12 +75,13 @@ jobs:
         # Use always() to always run this step to publish test results when there are test failures
         if: always()
 
-      # CHANGEME un-comment to use codecov server
-      # - name: "Upload coverage to Codecov"
-      #   uses: codecov/codecov-action@v2
-      #   with:
-      #     fail_ci_if_error: true
-      #     files: build/qa-${{ matrix.python-version }}/coverage.xml
+      - name: "Upload coverage to Codecov"
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          files: build/qa-${{ matrix.python-version }}-${{ matrix.os}}/coverage.xml
+          verbose: true
 
       - name: Build wheel package
         env:
