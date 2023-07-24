@@ -123,6 +123,7 @@ def git_project_factory(request, tmp_path):
         def init(
             self,
             force: bool = False,
+            nobranch: bool = False
         ) -> GitRepoBase:
             from shutil import rmtree
 
@@ -130,11 +131,16 @@ def git_project_factory(request, tmp_path):
                 rmtree(self.workdir, ignore_errors=True)
             self.workdir.mkdir(parents=True, exist_ok=True if force else False)
 
-            self(["init", "-b", "master"])
+            if not nobranch:
+                self(["init", "-b", "master"])
+            else:
+                self(["init",])
+
             self(["config", "user.name", "First Last"])
             self(["config", "user.email", "user@email"])
 
-            self(["commit", "-m", "initial", "--allow-empty"])
+            if not nobranch:
+                self(["commit", "-m", "initial", "--allow-empty"])
             return self
 
     class Project(GitRepoBase):
@@ -161,11 +167,11 @@ def git_project_factory(request, tmp_path):
             ]
             return lines[0] if lines else None
 
-        def create(self, version=None, clone=None, force=False):
+        def create(self, version=None, clone=None, force=False, nobranch=False):
             if clone:
                 clone.clone(self.workdir, force=force)
             else:
-                self.init(force=force)
+                self.init(force=force, nobranch=nobranch)
             self.version(version)
             return self
 
