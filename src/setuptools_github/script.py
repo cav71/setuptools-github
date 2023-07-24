@@ -11,6 +11,7 @@ Or will release the beta branch and will move inot the next minor
 """
 from __future__ import annotations
 import logging
+import re
 from pathlib import Path
 import argparse
 from . import cli, tools
@@ -84,16 +85,23 @@ def main(options) -> None:
         log.info("creating branch '%s'", f"/beta/{version}")
         commit = options.repo.revparse_single("HEAD")
         options.repo.branches.local.create(f"/beta/{version}", commit)
-    # elif options.mode in {"micro", "minor", "major"}:
-    #     # we need to be in the beta/N.M.O branch
-    #     expr = re.compile(r"refs/heads/beta/(?P<beta>\d+([.]\d+)*$")
-    #     if not (match := expr.search(options.repo.head.name)):
-    #         options.error(
-    #             f"wrong branch '{options.repo.head.name}',
-    #             expected 'refs/heads/beta/{version}'"
-    #         )
-    #
-    #     pass
+    elif options.mode in {"micro", "minor", "major"}:
+        # we need to be in the beta/N.M.O branch
+        expr = re.compile(r"refs/heads/beta/(?P<beta>\d+([.]\d+)*$")
+        if not (match := expr.search(options.repo.head.name)):
+            options.error(
+                f"wrong branch '{options.repo.head.name}'"
+                f"expected 'refs/heads/beta/{version}'"
+            )
+            return
+        local = match.group("beta")
+        if local != version:
+            options.error(f"wrong version file {version=} != {local}")
+        # TODO
+        #  1. tag
+        #  2. switch to master
+        #  3. bump version
+        #  4. commit
     else:
         options.error(f"unsupported mode {options.mode=}")
         raise RuntimeError(f"unsupported mode {options.mode=}")
