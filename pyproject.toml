@@ -1,5 +1,5 @@
 [build-system]
-requires = [ "setuptools", "setuptools-github", "wheel" ]
+requires = [ "setuptools", "setuptools-github", "wheel", "typing-extensions", ]
 build-backend = 'setuptools.build_meta'
 
 [tool.black]
