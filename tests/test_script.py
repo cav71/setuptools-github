@@ -55,6 +55,7 @@ def test_main_make_beta(git_project_factory):
         repo=pygit2.Repository(repo.workdir),
         mode="make-beta",
         error=errorfn,
+        master="master"
     )
     script.main.__wrapped__(options)
     assert set(repo.branches.local) == {"master", "beta/0.0.0"}
