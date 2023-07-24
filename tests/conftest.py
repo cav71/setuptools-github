@@ -101,15 +101,6 @@ def scripter(request, tmp_path_factory, datadir):
     return Scripter(pathlib.Path(request.module.__file__).parent, datadir)
 
 
-##########################################################
-# GIT TEST HELPER                                        #
-#                                                        #
-#   def test(git_project_factory):                       #
-#       repo = git_project_factory().create()            #
-#       # clone from repo                                #
-#       repo1 = git_project_factory().create(clone=repo) #
-##########################################################
-
 @pytest.fixture(scope="function")
 def git_project_factory(request, tmp_path):
     """fixture to generate git working repositories
