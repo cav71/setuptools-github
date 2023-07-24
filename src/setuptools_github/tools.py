@@ -259,13 +259,15 @@ def update_version(
 
     if match := expr.search(gdata["ref"]):
         match1 = expr1.search(current or "")
-        if match1 and (match1.group("version") != match.group("version")):
+        if not match1:
+            raise InvalidGithubReference(f"cannot parse current version '{current}'")
+        if match1.group("version") != match.group("version"):
             raise InvalidGithubReference(
                 f"building package for {current} from '{gdata['ref']}' "
                 f"branch ({match.groupdict()} mismatch {match1.groupdict()})"
             )
         if match.group("what") == "beta":
-            version = f"{current}b{gdata['run_number']}"
+            version = f"{match1.group('version')}b{gdata['run_number']}"
 
     short = gdata["sha"] + ("*" if dirty else "")
 
