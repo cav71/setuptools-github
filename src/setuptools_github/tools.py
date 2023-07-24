@@ -260,7 +260,8 @@ def update_version(
     if match := expr.search(gdata["ref"]):
         if current != match.group("version"):
             raise InvalidGithubReference(
-                f"building package for {current} from '{gdata['ref']}' branch"
+                f"building package for {current} from '{gdata['ref']}' "
+                f"branch ({current} != {match.group('version')}"
             )
         if match.group("what") == "beta":
             version = f"{current}b{gdata['run_number']}"
