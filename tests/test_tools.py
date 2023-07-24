@@ -226,117 +226,85 @@ def test_bump_version():
     assert tools.bump_version("1.2.3", "release") == "1.2.3"
 
 
-def test_update_version(tmp_path):
-    "test the update_version processing"
-    from hashlib import sha224
+def test_update_version_master(git_project_factory):
+    "test the update_version processing on the master branch"
 
-    def writeinit(path, version="1.2.3"):
-        path.write_text(
-            f"""
-# a test file
-__version__ = "{version}"
-__hash__ = "4.5.6"
-
-# end of test
-"""
-        )
-        return sha224(path.read_bytes()).hexdigest()
-
-    initfile = tmp_path / "__init__.py"
-    hashval = writeinit(initfile)
+    repo = git_project_factory().create("1.2.3")
+    assert tools.get_module_var(repo.initfile) == "1.2.3"
 
     # verify nothing has changed
-    assert "1.2.3" == tools.update_version(initfile, abort=False)
-    assert hashval == sha224(initfile.read_bytes()).hexdigest()
-
-    # we update the __version__/__hash__ from a master branch
-    tools.update_version(initfile, GITHUB["master"])
+    assert "1.2.3" == tools.update_version(repo.initfile, abort=False)
+    assert tools.get_module_var(repo.initfile) == "1.2.3"
     assert (
-        initfile.read_text()
-        == """
-# a test file
-__version__ = "1.2.3"
-__hash__ = "2169f90c"
-
-# end of test
-"""
+        tools.get_module_var(repo.initfile, "__hash__")
+        == repo(["rev-parse", "HEAD"])[:7]
     )
 
-    # we update __version__/__hash__ from a beta branch (note the b<build-number>)
-    writeinit(initfile)
-    pytest.raises(tools.GithubError, tools.update_version, initfile, GITHUB["beta"])
-
-    writeinit(initfile, "0.0.4")
-    tools.update_version(initfile, GITHUB["beta"])
-    assert (
-        initfile.read_text()
-        == """
-# a test file
-__version__ = "0.0.4b8"
-__hash__ = "2169f90c22e"
-
-# end of test
-"""
-    )
-
-    writeinit(initfile)
-    pytest.raises(tools.GithubError, tools.update_version, initfile, GITHUB["release"])
-
-    writeinit(initfile, "0.0.3")
-    tools.update_version(initfile, GITHUB["release"])
-    assert (
-        initfile.read_text()
-        == """
-# a test file
-__version__ = "0.0.3"
-__hash__ = "5547365c82"
-
-# end of test
-"""
-    )
+    assert "1.2.3" == tools.update_version(repo.initfile, GITHUB["master"], abort=False)
+    assert tools.get_module_var(repo.initfile) == "1.2.3"
+    assert tools.get_module_var(repo.initfile, "__hash__") == "2169f90c"
 
 
-def test_e2e(git_project_factory):
-    repo = git_project_factory().create()
+def test_update_version_beta(git_project_factory):
+    "test the update_version processing on the master branch"
 
-    pytest.raises(tools.MissingVariable, tools.update_version, repo.initfile, None)
-
-    # adds a new version file on the master branch
+    repo = git_project_factory().create("0.0.4")
+    assert tools.get_module_var(repo.initfile) == "0.0.4"
     assert repo.branch() == "master"
-    assert repo.version("0.0.4") == "0.0.4"
-    assert repo.initfile.read_text() == T(
-        """
-    __version__ = "0.0.4"
-    """
-    )
 
-    # update the local version (manual build)
-    assert tools.update_version(repo.initfile, None) == "0.0.4"
-    assert tools.update_version(repo.initfile, GITHUB["master"]) == "0.0.4"
-    assert repo.initfile.read_text() == T1(
-        """
-    __version__ = "0.0.4"
-    __hash__ = "2169f90c"
-    """
-    )
-
-    # branch for beta
+    # branch
     repo.branch("beta/0.0.4", "master")
     assert repo.branch() == "beta/0.0.4"
 
-    tools.update_version(repo.initfile, None)
-    repo.revert()
-    assert repo.version() == "0.0.4"
+    assert tools.update_version(repo.initfile, abort=False)
+    assert tools.get_module_var(repo.initfile) == "0.0.4b0"
+    assert (
+        tools.get_module_var(repo.initfile, "__hash__")
+        == repo(["rev-parse", "HEAD"])[:7]
+    )
+    repo.revert(repo.initfile)
 
-    assert tools.update_version(repo.initfile, GITHUB["beta"]) == "0.0.4b8"
-    repo(["commit", "-m", "change", repo.initfile])
-    assert repo.version() == "0.0.4b8"
+    assert tools.get_module_var(repo.initfile) == "0.0.4"
+    assert tools.update_version(repo.initfile, GITHUB["beta"], abort=False)
+    assert tools.get_module_var(repo.initfile) == "0.0.4b8"
+    assert tools.get_module_var(repo.initfile, "__hash__") == "2169f90c22e"
+    repo.revert(repo.initfile)
 
-    # branch/tag for release
-    repo.branch("release/0.0.3", "master")
-    assert repo.branch() == "release/0.0.3"
-    repo.version("0.0.3")
+    # wrong branch
+    repo.branch("beta/0.0.2", "master")
+    assert repo.branch() == "beta/0.0.2"
+    pytest.raises(
+        tools.InvalidGithubReference, tools.update_version, repo.initfile, abort=False
+    )
 
-    tools.update_version(repo.initfile, None)
-    assert repo.version() == "0.0.3"
-    assert tools.update_version(repo.initfile, GITHUB["release"]) == "0.0.3"
+    github_dump = GITHUB["beta"].copy()
+    github_dump["ref"] = "refs/heads/beta/0.0.2"
+    pytest.raises(
+        tools.InvalidGithubReference,
+        tools.update_version,
+        repo.initfile,
+        github_dump,
+        abort=False,
+    )
+
+
+def test_update_version_release(git_project_factory):
+    repo = git_project_factory().create("0.0.3")
+    assert tools.get_module_var(repo.initfile) == "0.0.3"
+
+    # branch
+    repo.branch("beta/0.0.3", "master")
+    assert repo.branch() == "beta/0.0.3"
+
+    path = repo.workdir / "hello.txt"
+    path.write_text("hello world\n")
+    repo.commit(path, "initial")
+
+    repo(["tag", "release/0.0.3", repo(["rev-parse", "HEAD"])[:7]])
+
+    assert (
+        tools.update_version(repo.initfile, GITHUB["release"], abort=False) == "0.0.3"
+    )
+    assert tools.get_module_var(repo.initfile) == "0.0.3"
+    assert tools.get_module_var(repo.initfile, "__hash__") == "5547365c82"
+    repo.revert(repo.initfile)

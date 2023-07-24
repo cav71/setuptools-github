@@ -253,12 +253,14 @@ def update_version(
         dirty = False
 
     version = current = get_module_var(path, "__version__")
-    expr = re.compile(r"/(?P<what>beta|release)/(?P<version>\d+([.]\d+)*)")
 
+    expr = re.compile(
+        r"/(?P<what>beta|release)/(?P<version>\d+([.]\d+)*)(?P<num>b\d+)?"
+    )
     if match := expr.search(gdata["ref"]):
-        if (version := match.group("version")) != current:
+        if current != match.group("version"):
             raise InvalidGithubReference(
-                f"current version for '{gdata['ref']}' mismatch {current} != {version}"
+                f"building package for {current} from '{gdata['ref']}' branch"
             )
         if match.group("what") == "beta":
             version = f"{current}b{gdata['run_number']}"
