@@ -174,3 +174,6 @@ REPO: {project.workdir}
 """
     )
     check_branches(project)
+
+    repox = scm.GitRepo(project.workdir)
+    assert project.dumps() == repox.dumps()
