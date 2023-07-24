@@ -20,7 +20,7 @@ setup(
     package_dir={"setuptools_github": "src/setuptools_github"},
     description="supports github releases",
     long_description=pathlib.Path("README.md").read_text(),
-    long_description_content_type="text/x-markdown",
+    long_description_content_type="text/markdown",
     install_requires=["setuptools"],
     entry_points={
         "console_scripts": [
