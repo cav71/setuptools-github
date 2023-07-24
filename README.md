@@ -8,251 +8,103 @@ setuptools-github
 [![Coverage](https://codecov.io/gh/cav71/setuptools-github/branch/master/graph/badge.svg?token=SIUMZ7MT5T)](Coverage)
 
 
-## Intro
-setuptools-github helps to implement a simple project life cycle
-aimed at delivering packages into [PyPI](https://pypi.org): 
-there are three important components.
-
-#### /master branch
-This is the branch for CI build and code quality checks as:
-  - run flake8
-  - mypy
-  - pytest + coverage
-    (see *.github/workflows/master.yml*)
-
-Work from other feature branches get integrated here, for testing.
-
-#### /beta/N.M.O branch
-This branch (on each commit) will generate a 
-beta **package-N.M.O.bX** into [PyPI](https://pypi.org).
-**X** denotes a unique increasing build number.
-  - run flake8
-  - mypy
-  - pytest + coverage
-    (see *.github/workflows/master.yml*)
-  - packaging the wheel for **package-N.M.O.bX**
-  - (optional) publish the 
-
-Changes from **/master** branch get pushed here, to prepare for packaging
-into *beta* packages: these are continuosly released and they can 
-be used for integration testing.
-
-#### /release/N.M.O tag
-On tagging a commit in a **/beta/N.M.O** branch will delivere the 
-formal package **package-N.M.O** into [PyPI](https://pypi.org).
-
-> **NOTE:** All packages include a __version__ and __hash__ variables, used to
-> link the generated package with the source code.
-
 ## Quick start
+setuptools-github helps to implement a simple project life cycle
+aimed at delivering packages into [PyPI](https://pypi.org).
 
-Start from the */master* branch:
+Install it with:
+```bash
+pip install setuptools-github
+ or
+conda install -c conda-forge setuptools-github
+```
 
-**Setup the version file**
-
-We will use src/package_name/__init__.py to store the package information:
+### Setup the master branch
+Create a new `src/package_name/__init__.py` file to store the package information:
 ```
 __version__ = "N.M.O"  # replace N, M and O with numerical values (eg. 0.0.0)
 __hash__ = ""  # leave this empty
 ```
 
-**Add the setup data**
-
-In setup.py add:
+Fix the setup.py file:
 ```
 from setuptools_github import tools
-initfile = pathlib.Path(__file__).parent / "your_package/__init__.py"
+initfile = pathlib.Path(__file__).parent / "package_name/__init__.py"
 setup(
   name="package-name",
   version=tools.update_version(initfile, os.getenv("GITHUB_DUMP")),
   ...
 ```
+Copy over the github workflow files:
+- [github/workflows/master.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/master.yml)
+- [github/workflows/beta.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/beta.yml)
+- [github/workflows/tags.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/tags.yml)
 
-**Copy the github actions**
+Most likely you might need to change `tests/requirements.txt` file.
 
-Copy all github action files from 
-[workflows](https://github.com/cav71/setuptools-github/tree/release/0.3.0/.github/workflows)
+THAT IS ALL! Now when commiting to the master branch, this will trigger the 
+github action to run tests and quality checks on the code 
+(see the Rationale section below).
 
-## Development
-Once the setup is done, the workflow is rather simple.
+### Setup the beta/N.M.O branch
 
-### /master branch
-Commit into the **master** branch and for each commit CI (github) will:
-  - run flake8
-  - mypy
-  - pytest + coverage
-    (see *.github/workflows/master.yml*)
+You must create a beta branch using the little script:
+```python
 
-### /beta/N.M.O
-Create a new beta branch to start creating packages on PyPi:
-```bash
-setuptools-github src/package/__init__.py make-beta
+python -m setuptools_github.script make-beta 
+or
+setuptools-github make-beta
 ```
-(assuming src/package/__init__.py contains the __version__ variable)
 
-* Create and use a **beta/N.M.O** branch to integrate work from **master** and for each commit CI (github) will:
+This will generate the **beta/N.M.O** branch out of the master branch.
+
+Adds the secrets in https://github.com/<username>/<project-name>/settings/secrets/actions:
+- TWINE_PASSWORD
+- TWINE_USERNAME
+
+Then for each commit into **beta/N.M.O** a package will be generated as
+**package-N.M.O.bX** on [PyPI](https://pypi.org) (if all tests pass!).
+
+
+## Rationale
+setuptools-github helps to implement a simple project life cycle
+aimed at delivering packages into [PyPI](https://pypi.org): 
+there are three important components, the **master** branch, 
+the **beta** branch and the **release** tags.
+
+`/master branch` this is the branch where all commit go 
+(as well the PR from feature branches).
+On each commit the CI will run code quality checks as:
+  - running flake8
+  - running mypy
+  - running all pytest + coverage
+
+(see [github/workflows/master.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/master.yml) for an example)
+
+`/beta/N.M.O branch` branch is where code is merged to release the *beta*
+packages to [PyPI](https://pypi.org).   
+On each commit into this branch, the CI will:
   - run flake8
-  - mypy
-  - pytest + coverage
-  - (optional) send the coverage to codecov
-  - create a **beta** wheel as **package-N.M.Ob#1234** (1234 is a sequential build number)
-  - publish it into pypi.org as beta package
+  - run mypy
+  - run pytest + coverage (see *.github/workflows/master.yml*)
+  - create wheel such as **package-N.M.O.bX**
+  - (optional) publish the wheel to [PyPI](https://pypi.org)
 
-* Once ready for full release `setuptools-github-start-release micro src/your_package/__init__.py`:
-  - create the tag **beta/N.M.O** pointing to the latest **releaase/N.M.O** commit
-  - this will trigger the **release** wheel as **package-N.M.Ob** creation
-  - publish it into pypi.org as released package
+(see [github/workflows/beta.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/beta.yml) for an example)
 
-**setuptools-github** is fully CI/CD integrated (github actions) to eliminate any manual step involved
-with software deployment (except code writing).
+> NOTE: the **X** in the **package-name-N.M.O.bX** is a unique increasing 
+> build number taken from GITHUB build environment.
 
+`/release/N.M.O` is a release tag.
+Once the code is stable enough on the **/beta/N.M.O** branch that is the
+time to release a formal **package-N.M.O**.
 
-Project Setup
-=============
+So tagging on **/beta/N.M.O** with a **/release/N.M.O** tag will direct the
+CI to:
+  - create wheel such as **package-name-N.M.O**
+  - (optional) publish the wheel to [PyPI](https://pypi.org)
 
-First add a "version" file in the source code eg. src/package_name/__init__.py with a content like this:
+(see [github/workflows/tags.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/tags.yml) for an example)
 
-
-The generated package provides two important variables (auto updated from the code leveraging automation):
-
-   #. __version__ with the code version
-   #. __hash__ with the has commit where the code originates from
-
-To enable..
-
-**Step 1** in your setup.py file::
-
-   from setuptools_github import tools
-   initfile = pathlib.Path(__file__).parent / "your_package/__init__.py"
-   setup(
-        name="a-name",
-        version=tools.update_version(initfile, os.getenv("GITHUB_DUMP")),
-        ...
-
-*__init__.py* will contain the __version__ and __hash__ variables.
-
-**Step 2** in your .github/workflows/{beta,master,release}.yml action files::
-
-    - name: Build wheel package
-      env:
-        PYTHONPATH: .
-        GITHUB_DUMP: ${{ toJson(github) }}
-      run: |
-        python -m build
-
-That's all! everytime you'll push code into a branch/N.M.O or tag with release/N.M.O the packages
-will be have the __version__/__hash__ variables auto generated.
-
-Initial steps (setup.py)
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-First add into the **setup.py** file the function handling the __version__/__hash__ variables::
-
-   from setuptools_github import tools
-   initfile = pathlib.Path(__file__).parent / "your_package/__init__.py"
-
-   # this will manage the __version__/__hash__ in initfile using the github envs
-   version = tools.update_version(initfile, os.getenv("GITHUB_DUMP"))
-
-   setup(
-        name="a-name",
-        version=version,
-        ...
-
-.. NOTE::
-   If the your_package/__init__.py is not present it will be created on the fly when setup.py is run.
-
-Second update the **.github/workflows/{beta,master,release}.yml**
-
-Adds to the workflows yaml files the following::
-
-    - name: Build wheel package
-      env:
-        PYTHONPATH: .
-        GITHUB_DUMP: ${{ toJson(github) }}
-      run: |
-        python -m build
-
-This will set the environment variable GITHUB_DUMP to a json string from the action context.
-
-Release process
-~~~~~~~~~~~~~~~
-
-To begin a new branch from **master**::
-
-    setuptools-github-start-release micro src/your_package/__init__.py
-
-This will create a new branch beta/0.0.0 initially where your-package will build 0.0.0b1, 0.0.0b2 etc. wheels.
-
-Tagging beta/0.0.0 as release/0.0.0, will close the branch and you can restart a new branch::
-
-    setuptools-github-start-release micro src/your_package/__init__.py
-
-This will (1) bump the master __version__ to 0.0.1 (micro), and create a new beta/0.0.1 branch.
-
-
-The master branch
-~~~~~~~~~~~~~~~~~
-
-The **master** holds all the integration work coming from other **dev** branches and for each push
-the code undergo the following steps:
-
-    #. unit and integration testing
-    #. code coverage
-    #. static code check
-    #. style check
-
-No package artifact are generated here as the code is not "installable" (eg. is still in source version).
-
-.. image:: https://github.com/cav71/setuptools-github/blob/release/0.2.2/maintainer/master-branch.png?raw=true
-   :alt: blha
-   :width: 400
-
-The delivery branch
-~~~~~~~~~~~~~~~~~~~
-
-The next step is branching **master** into a "delivery" branch using the **beta/N.M.O** name convention.
-
-.. image:: https://raw.githubusercontent.com/cav71/setuptools-github/release/0.2.2/maintainer/delivery-branch.png
-   :alt: blha
-   :width: 400
-
-
-package deliveries using beta branches on github:
-in a simple model each (automated) commit on a beta/N.M.O branch will result in a package with a __version__
-of N.M.Ob<build-number> and a __hash__ corresponding to the commit.
-
-Finally tagging the code with a release/N.M.O tag will result in a package of __version__ N.M.O and "close"
-the beta branch (this is the same sorting strategy used in `pep440`).
-
-A script **setuptools-github-start-release** will help to start a beta release branch.
-
-
-Setup
-~~~~~
-
-We start from the master branch (or main, depending on the repository setting).
-
-
-Requirements
-------------
-
-* ``Python`` >= 3.7.
-* ``setuptools``
-
-
-Installation
-------------
-
-You can install ``setuptools-github`` via `pip`_ from `PyPI`_::
-
-    $ pip install setuptools-github
-
-Or conda::
-
-    $ conda install -c conda-forge setuptools-github
-
-
-.. _`pip`: https://pypi.org/project/pip/
-.. _`PyPI`: https://pypi.org/project
-.. _`pep440`: https://peps.python.org/pep-0440
+> WARNING: there won't be any check/test run on the tagged code, so it
+> it important the tagging happen on **/beta/N.M.O** branch
