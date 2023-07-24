@@ -18,6 +18,13 @@ pip install setuptools-github
  or
 conda install -c conda-forge setuptools-github
 ```
+### Add secrets
+First you need to install the secrets for the **package-name** repository
+[here](https://github.com/cav71/setuptools-github/settings/secrets/actions)
+- TWINE_PASSWORD
+- TWINE_USERNAME
+- CODECOV_TOKEN
+
 
 ### Setup the master branch
 Create a new `src/package_name/__init__.py` file to store the package information:
