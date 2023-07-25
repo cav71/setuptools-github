@@ -77,7 +77,11 @@ def main(options) -> None:
         options.error(f"cannot find version file {options.initfile}")
 
     version = tools.get_module_var(options.initfile, "__version__")
+    assert version
     log.info("got version %s for branch '{options.repo.head.name}'", version)
+
+    # fetching all remotes
+    [remote.fetch() for remote in options.repo.remotes]
 
     if options.mode == "make-beta":
         if options.repo.head.name != f"refs/heads/{master}":
@@ -94,10 +98,10 @@ def main(options) -> None:
         options.repo.branches.local.create(f"/beta/{version}", commit)
     elif options.mode in {"micro", "minor", "major"}:
         # we need to be in the beta/N.M.O branch
-        expr = re.compile(r"refs/heads/beta/(?P<beta>\d+([.]\d+)*$")
+        expr = re.compile(r"refs/heads/beta/(?P<beta>\d+([.]\d+)*)$")
         if not (match := expr.search(options.repo.head.name)):
             options.error(
-                f"wrong branch '{options.repo.head.name}'"
+                f"wrong branch '{options.repo.head.name}' "
                 f"expected 'refs/heads/beta/{version}'"
             )
             return
@@ -105,11 +109,38 @@ def main(options) -> None:
         if local != version:
             options.error(f"wrong version file {version=} != {local}")
 
-        # TODO
-        #  1. tag
-        #  2. switch to master
-        #  3. bump version
-        #  4. commit
+        # tag
+        obj = options.repo.get(options.repo.head.target)
+        options.repo.create_tag(
+            f"release/{version}",
+            obj.oid,
+            pygit2.GIT_OBJ_COMMIT,
+            obj.author,
+            f"release {version}",
+        )
+
+        # switch to master
+        branch = options.repo.lookup_branch(master)
+        head = options.repo.lookup_reference(branch.name)
+        options.repo.checkout(head.name)
+
+        # bump version
+        tools.set_module_var(
+            options.initfile, "__version__", tools.bump_version(version, options.mode)
+        )
+
+        # commit
+        ref = options.repo.head.name
+        parents = [options.repo.head.target]
+        obj = options.repo.get(options.repo.head.target)
+        index = options.repo.index
+        index.add(str(options.initfile.relative_to(options.repo.workdir)))
+        index.write()
+        tree = index.write_tree()
+        options.repo.create_commit(
+            ref, obj.author, obj.author, "release", tree, parents
+        )
+
     else:
         options.error(f"unsupported mode {options.mode=}")
         raise RuntimeError(f"unsupported mode {options.mode=}")
