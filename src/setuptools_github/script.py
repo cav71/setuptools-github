@@ -66,7 +66,7 @@ def process_options(
 def main(options) -> None:
     # master branch
     master = options.master or (
-        options.repo.config.get("init.defaultbranch")
+        options.repo.config["init.defaultbranch"]
         if "init.defaultbranch" in options.repo.config
         else "master"
     )
