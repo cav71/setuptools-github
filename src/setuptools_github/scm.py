@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 from typing_extensions import TypeAlias
-from typing import Union, List
+from typing import Union, List, Any
 
 
 ListOfArgs: TypeAlias = Union[str, Path, List[Union[str, Path]]]
@@ -15,6 +15,14 @@ ListOfArgs: TypeAlias = Union[str, Path, List[Union[str, Path]]]
 
 def to_list_of_paths(paths: ListOfArgs) -> list[Path]:
     return [Path(s) for s in ([paths] if isinstance(paths, (str, Path)) else paths)]
+
+
+class NA:
+    pass
+
+
+class GitError(Exception):
+    pass
 
 
 @dc.dataclass
@@ -76,7 +84,29 @@ class GitRepoBase:
 
 
 class GitRepo(GitRepoBase):
-    # COMMANDS FOR THE REPO HERE
+    @property
+    def config(self):
+        @dc.dataclass
+        class X:
+            repo: GitRepo
+
+            def __getitem__(self, item: str):
+                return self.repo(["config", item]).strip()
+
+            def __setitem__(self, item: str, value: Any):
+                self.repo(["config", item, str(value)])
+
+            def __contains__(self, item: str):
+                return item in self.repo(
+                    [
+                        "config",
+                        "--list",
+                        "--name-only",
+                    ]
+                ).split("\n")
+
+        return X(self)
+
     def revert(self, paths: ListOfArgs | None = None):
         sources = to_list_of_paths(paths or self.workdir)
         self(["checkout", *sources])
@@ -84,7 +114,10 @@ class GitRepo(GitRepoBase):
     @property
     def head(self):
         name = self(["symbolic-ref", "HEAD"]).strip()
-        txt = self(["rev-parse", name]).strip()
+        try:
+            txt = self(["rev-parse", name]).strip()
+        except subprocess.CalledProcessError as exc:
+            raise GitError(f"no branch '{name}'") from exc
         return GitRepoHead(name=name, target=GitRepoHead.GitRepoHeadHex(txt))
 
     def status(
@@ -96,7 +129,11 @@ class GitRepo(GitRepoBase):
             " M": 256,
         }
         result = {}
-        for line in self(["status", "--porcelain"]).split("\n"):
+        try:
+            txt = self(["status", "--porcelain"])
+        except subprocess.CalledProcessError as exc:
+            raise GitError("invalid repo") from exc
+        for line in txt.split("\n"):
             if not line.strip():
                 continue
             tag, filename = line[:2], line[3:]

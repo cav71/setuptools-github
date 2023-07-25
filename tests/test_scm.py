@@ -1,7 +1,6 @@
 import subprocess
 
 import pytest
-import pygit2
 
 from setuptools_github import scm
 
@@ -21,21 +20,13 @@ def test_handle_remote_and_local_repos(git_project_factory):
 
     def check_branches(repo):
         srepo = scm.GitRepo(repo.workdir)
-        grepo = pygit2.Repository(repo.workdir)
         assert set(repo.branches.local) == set(srepo.branches.local)
-        assert set(srepo.branches.local) == set(grepo.branches.local)
         assert set(repo.branches.remote) == set(srepo.branches.remote)
-        assert set(srepo.branches.remote) == set(grepo.branches.remote)
 
     # Create a repository with two beta branches tagged
     repo = git_project_factory("test_check_version-repo").create("0.0.0")
     repo.branch("beta/0.0.3")
-    # repo(["tag", "-m", "release", "release/0.0.3"])
-    rx = pygit2.Repository(repo.workdir)
-    obj = rx.get(rx.head.target)
-    rx.create_tag(
-        "release/0.0.3", obj.oid, pygit2.GIT_OBJ_COMMIT, obj.author, "release"
-    )
+    repo(["tag", "-m", "release", "release/0.0.3"])
 
     repo.branch("beta/0.0.4")
     repo(["tag", "-m", "release", "release/0.0.4"])
