@@ -78,7 +78,7 @@ def main(options) -> None:
 
     version = tools.get_module_var(options.initfile, "__version__")
     assert version
-    log.info("got version %s for branch '{options.repo.head.name}'", version)
+    log.info("got version %s for branch '%s'", version, options.repo.head.shorthand)
 
     # fetching all remotes
     options.repo(["fetch", "--all"])
@@ -101,8 +101,9 @@ def main(options) -> None:
         expr = re.compile(r"refs/heads/beta/(?P<beta>\d+([.]\d+)*)$")
         if not (match := expr.search(options.repo.head.name)):
             options.error(
-                f"wrong branch '{options.repo.head.name}' "
-                f"expected 'refs/heads/beta/{version}'"
+                f"wrong branch '{options.repo.head.shorthand}'",
+                f"expected to be in 'beta/{version}' branch",
+                f"git checkout beta/{version}",
             )
             return
         local = match.group("beta")
