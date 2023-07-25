@@ -134,7 +134,9 @@ def main(options) -> None:
         parents = [options.repo.head.target]
         obj = options.repo.get(options.repo.head.target)
         index = options.repo.index
-        index.add(str(options.initfile.relative_to(options.repo.workdir)))
+        index.add(
+            str(options.initfile.relative_to(options.repo.workdir)).replace("\\", "/")
+        )
         index.write()
         tree = index.write_tree()
         options.repo.create_commit(

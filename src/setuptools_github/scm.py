@@ -75,11 +75,6 @@ class GitRepoBase:
         return buf.getvalue()
 
 
-class Repository(GitRepoBase):
-    # mimics the pygit2.Repository class
-    pass
-
-
 class GitRepo(GitRepoBase):
     # COMMANDS FOR THE REPO HERE
     def revert(self, paths: ListOfArgs | None = None):
