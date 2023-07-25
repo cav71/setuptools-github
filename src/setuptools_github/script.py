@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 
 def add_arguments(parser: argparse.ArgumentParser):
-    parser.add_argument("--master", default="master", help="the 'master' branch")
+    parser.add_argument("--master", help="the 'master' branch")
     parser.add_argument(
         "-w",
         "--workdir",
@@ -64,21 +64,24 @@ def process_options(
 
 @cli.cli(add_arguments, process_options, __doc__)
 def main(options) -> None:
+    # master branch
+    master = options.master or options.repo.config["init.defaultbranch"] or "master"
+
     if options.repo.status(untracked_files="no", ignored=False):
         options.error(f"modified files in {options.repo.workdir}")
     if not options.initfile.exists():
         options.error(f"cannot find version file {options.initfile}")
 
     version = tools.get_module_var(options.initfile, "__version__")
+    log.info("got version %s for branch '{options.repo.head.name}'", version)
 
     if options.mode == "make-beta":
-        if options.repo.head.name != f"refs/heads/{options.master}":
+        if options.repo.head.name != f"refs/heads/{master}":
             options.error(
-                f"wrong branch '{options.repo.head.name}', expected '{options.master}'"
+                f"wrong branch '{options.repo.head.name}', expected '{master}'"
             )
 
-        log.info("got version %s", version)
-        for branch in options.repo.branches.local:
+        for branch in [*options.repo.branches.local, *options.repo.branches.remote]:
             if not branch.endswith(f"beta/{version}"):
                 continue
             options.error(f"branch '{branch}' already present")
@@ -97,6 +100,7 @@ def main(options) -> None:
         local = match.group("beta")
         if local != version:
             options.error(f"wrong version file {version=} != {local}")
+
         # TODO
         #  1. tag
         #  2. switch to master

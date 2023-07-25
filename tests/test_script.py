@@ -1,6 +1,8 @@
 from argparse import Namespace
 from setuptools_github import script
 
+import pytest
+
 import pygit2
 
 
@@ -35,14 +37,49 @@ def test_process_options(tmp_path, git_project_factory):
         assert e.args[0] == "invalid git repository"
 
 
+@pytest.mark.skipif(not pygit2, reason="pygit2 not installed")
 def test_main_make_beta(git_project_factory):
-
     repo = git_project_factory().create(force=True)
+
     options = Namespace(
         initfile=repo.workdir / "src" / "__init__.py",
-        repo=repo,
+        repo=pygit2.Repository(repo.workdir),
         mode="make-beta",
         error=errorfn,
+        master=None
+    )
+    try:
+        script.main.__wrapped__(options)
+    except MyError as exc:
+        assert exc.args[0].startswith("cannot find version file")
+
+    repo = git_project_factory().create(version="0.0.0")
+    options = Namespace(
+        initfile=repo.workdir / "src" / "__init__.py",
+        repo=pygit2.Repository(repo.workdir),
+        mode="make-beta",
+        error=errorfn,
+        master="master"
+    )
+    script.main.__wrapped__(options)
+    assert set(repo.branches.local) == {"master", "beta/0.0.0"}
+
+    try:
+        script.main.__wrapped__(options)
+    except MyError as exc:
+        assert exc.args[0].startswith("branch 'beta/0.0.0' already present")
+
+
+@pytest.mark.skipif(not pygit2, reason="pygit2 not installed")
+def test_main_make_release(git_project_factory):
+    repo = git_project_factory().create(force=True)
+
+    options = Namespace(
+        initfile=repo.workdir / "src" / "__init__.py",
+        repo=pygit2.Repository(repo.workdir),
+        mode="make-beta",
+        error=errorfn,
+        master=None
     )
     try:
         script.main.__wrapped__(options)

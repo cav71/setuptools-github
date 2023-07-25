@@ -33,7 +33,7 @@ class GitRepoHead:
     target: GitRepoHeadHex
 
 
-class GitRepo:
+class GitRepoBase:
     def __init__(self, workdir: Path | str, exe: str = "git", gitdir: Path | str = ""):
         self.workdir = Path(workdir).absolute()
         self.exe = exe
@@ -74,6 +74,13 @@ class GitRepo:
         print("\n".join([line.rstrip() for line in lines.split("\n")]), file=buf)
         return buf.getvalue()
 
+
+class Repository(GitRepoBase):
+    # mimics the pygit2.Repository class
+    pass
+
+
+class GitRepo(GitRepoBase):
     # COMMANDS FOR THE REPO HERE
     def revert(self, paths: ListOfArgs | None = None):
         sources = to_list_of_paths(paths or self.workdir)
