@@ -65,7 +65,7 @@ def process_options(
 @cli.cli(add_arguments, process_options, __doc__)
 def main(options) -> None:
     # master branch
-    master = options.master or options.repo.config["init.defaultbranch"] or "master"
+    master = options.master or options.repo.config.get("init.defaultbranch") or "master"
 
     if options.repo.status(untracked_files="no", ignored=False):
         options.error(f"modified files in {options.repo.workdir}")
