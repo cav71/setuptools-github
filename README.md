@@ -55,7 +55,7 @@ github action to run tests and quality checks on the code
 
 ### Setup the beta/N.M.O branch
 
-You must create a beta branch using the little script:
+From the **master** branch, this will create a beta branch:
 ```python
 
 python -m setuptools_github.script make-beta 
@@ -63,14 +63,34 @@ or
 setuptools-github make-beta
 ```
 
-This will generate the **beta/N.M.O** branch out of the master branch.
-
 Adds the secrets in https://github.com/<username>/<project-name>/settings/secrets/actions:
 - TWINE_PASSWORD
 - TWINE_USERNAME
 
 Then for each commit into **beta/N.M.O** a package will be generated as
 **package-N.M.O.bX** on [PyPI](https://pypi.org) (if all tests pass!).
+
+
+### Release the package N.M.O
+
+From the **beta/N.M.O** branch you can use:
+```python
+
+python -m setuptools_github.script micro 
+or
+setuptools-github make-beta micro
+```
+Once done, you'll need to push it.
+```bash
+git push release/N.M.I
+```
+
+This will:
+- tag the HEAD on **beta/N.M.O** branch with the **release/N.M.O** tag
+- trigger a CI build that will create the package-name-N.M.O
+- will send to pypi
+
+
 
 
 ## Rationale
