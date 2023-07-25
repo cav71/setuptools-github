@@ -129,7 +129,7 @@ def main(options) -> None:
         print(
             tools.indent(
                 f"""
-        The release is almost completed.
+        The release is almost complete.
 
         To proceed:
             git push origin release/{version}
