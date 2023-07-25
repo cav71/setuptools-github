@@ -81,7 +81,7 @@ def test_main_make_release(git_project_factory):
     try:
         script.main.__wrapped__(options)
     except MyError as exc:
-        assert exc.args[0].startswith("wrong branch 'refs/heads/master'")
+        assert exc.args[0].startswith("wrong branch 'master'")
 
     assert set(repo.branches.local) == {"master", "beta/0.0.0"}
     repo(["checkout", "beta/0.0.0"])

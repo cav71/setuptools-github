@@ -17,6 +17,11 @@ def to_list_of_paths(paths: ListOfArgs) -> list[Path]:
     return [Path(s) for s in ([paths] if isinstance(paths, (str, Path)) else paths)]
 
 
+def shorthand(txt: str) -> str:
+    tag = "refs/heads/"
+    return txt[len(tag) :] if txt.startswith(tag) else txt
+
+
 class NA:
     pass
 
@@ -42,10 +47,7 @@ class GitRepoHead:
 
     @property
     def shorthand(self):
-        tag = "refs/heads/"
-        if self.name.startswith(tag):
-            return self.name[len(tag) :]
-        return self.name
+        return shorthand(self.name)
 
 
 class GitRepoBase:
