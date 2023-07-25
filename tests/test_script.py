@@ -1,10 +1,6 @@
 from argparse import Namespace
 from setuptools_github import script
 
-import pytest
-
-import pygit2
-
 
 class MyError(Exception):
     pass
@@ -37,13 +33,12 @@ def test_process_options(tmp_path, git_project_factory):
         assert e.args[0] == "invalid git repository"
 
 
-@pytest.mark.skipif(not pygit2, reason="pygit2 not installed")
 def test_main_make_beta(git_project_factory):
     repo = git_project_factory().create(force=True)
 
     options = Namespace(
         initfile=repo.workdir / "src" / "__init__.py",
-        repo=pygit2.Repository(repo.workdir),
+        repo=repo,
         mode="make-beta",
         error=errorfn,
         master=None
@@ -56,7 +51,7 @@ def test_main_make_beta(git_project_factory):
     repo = git_project_factory().create(version="0.0.0")
     options = Namespace(
         initfile=repo.workdir / "src" / "__init__.py",
-        repo=pygit2.Repository(repo.workdir),
+        repo=repo,
         mode="make-beta",
         error=errorfn,
         master="master"
@@ -78,7 +73,7 @@ def test_main_make_release(git_project_factory):
 
     options = Namespace(
         initfile=repo.workdir / "src" / "__init__.py",
-        repo=pygit2.Repository(repo.workdir),
+        repo=repo,
         mode="micro",
         error=errorfn,
         master="master"

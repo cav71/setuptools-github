@@ -14,8 +14,7 @@ import logging
 import re
 from pathlib import Path
 import argparse
-from . import cli, tools
-import pygit2  # type: ignore
+from . import cli, tools, scm
 
 
 log = logging.getLogger(__name__)
@@ -38,8 +37,9 @@ def process_options(
     options: argparse.Namespace, error: cli.ErrorFn
 ) -> argparse.Namespace:
     try:
-        options.repo = repo = pygit2.Repository(options.workdir)
-    except pygit2.GitError:
+        options.repo = repo = scm.GitRepo(options.workdir)
+        repo.status()
+    except scm.GitError:
         error(
             "no git directory",
             "It looks the repository is not a git repo",
@@ -49,7 +49,7 @@ def process_options(
     try:
         branch = repo.head.shorthand
         log.info("current branch set to '%s'", branch)
-    except pygit2.GitError:
+    except scm.GitError:
         error(
             "invalid git repository",
             """
@@ -81,7 +81,7 @@ def main(options) -> None:
     log.info("got version %s for branch '{options.repo.head.name}'", version)
 
     # fetching all remotes
-    [remote.fetch() for remote in options.repo.remotes]
+    options.repo(["fetch", "--all"])
 
     if options.mode == "make-beta":
         if options.repo.head.name != f"refs/heads/{master}":
@@ -94,8 +94,8 @@ def main(options) -> None:
                 continue
             options.error(f"branch '{branch}' already present")
         log.info("creating branch '%s'", f"/beta/{version}")
-        commit = options.repo.revparse_single("HEAD")
-        options.repo.branches.local.create(f"/beta/{version}", commit)
+        options.repo.branch(f"beta/{version}", master)
+        options.repo(["checkout", master])
     elif options.mode in {"micro", "minor", "major"}:
         # we need to be in the beta/N.M.O branch
         expr = re.compile(r"refs/heads/beta/(?P<beta>\d+([.]\d+)*)$")
@@ -110,37 +110,18 @@ def main(options) -> None:
             options.error(f"wrong version file {version=} != {local}")
 
         # tag
-        obj = options.repo.get(options.repo.head.target)
-        options.repo.create_tag(
-            f"release/{version}",
-            obj.oid,
-            pygit2.GIT_OBJ_COMMIT,
-            obj.author,
-            f"release {version}",
-        )
+        options.repo(["tag", "-a", f"release/{version}", "-m", f"released {version}"])
 
         # switch to master
-        branch = options.repo.lookup_branch(master)
-        head = options.repo.lookup_reference(branch.name)
-        options.repo.checkout(head.name)
+        options.repo(["checkout", master])
 
         # bump version
-        tools.set_module_var(
-            options.initfile, "__version__", tools.bump_version(version, options.mode)
-        )
+        new_version = tools.bump_version(version, options.mode)
+        tools.set_module_var(options.initfile, "__version__", new_version)
 
         # commit
-        ref = options.repo.head.name
-        parents = [options.repo.head.target]
-        obj = options.repo.get(options.repo.head.target)
-        index = options.repo.index
-        index.add(
-            str(options.initfile.relative_to(options.repo.workdir)).replace("\\", "/")
-        )
-        index.write()
-        tree = index.write_tree()
-        options.repo.create_commit(
-            ref, obj.author, obj.author, "release", tree, parents
+        options.repo.commit(
+            options.initfile, f"version bump {version} -> {new_version}"
         )
 
     else:
