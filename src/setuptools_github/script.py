@@ -12,6 +12,7 @@ Or will release the beta branch and will move inot the next minor
 from __future__ import annotations
 import logging
 import re
+import sys
 from pathlib import Path
 import argparse
 from . import cli, tools, scm
@@ -125,6 +126,21 @@ def main(options) -> None:
             options.initfile, f"version bump {version} -> {new_version}"
         )
 
+        print(
+            tools.indent(
+                f"""
+        The release is almost completed.
+
+        To proceed:
+            git push origin release/{version}
+
+        To rever this script:
+            git reset --hard HEAD~1
+            git tag -d release/{version}
+        """
+            ),
+            file=sys.stderr,
+        )
     else:
         options.error(f"unsupported mode {options.mode=}")
         raise RuntimeError(f"unsupported mode {options.mode=}")
