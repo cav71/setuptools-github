@@ -40,6 +40,13 @@ class GitRepoHead:
     name: str
     target: GitRepoHeadHex
 
+    @property
+    def shorthand(self):
+        tag = "refs/heads/"
+        if self.name.startswith(tag):
+            return self.name[len(tag) :]
+        return self.name
+
 
 class GitRepoBase:
     def __init__(self, workdir: Path | str, exe: str = "git", gitdir: Path | str = ""):
