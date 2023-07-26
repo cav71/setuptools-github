@@ -1,5 +1,4 @@
 # setuptools-github
-<script>alert("hello");</script>
 [![PyPI version](https://img.shields.io/pypi/v/setuptools-github.svg?color=blue)](https://pypi.org/project/setuptools-github)
 [![Python versions](https://img.shields.io/pypi/pyversions/setuptools-github.svg)](https://pypi.org/project/setuptools-github)
 [![Build](https://github.com/cav71/setuptools-github/actions/workflows/master.yml/badge.svg)](https://github.com/cav71/setuptools-github/actions)
@@ -22,8 +21,10 @@ aimed at delivering packages into [PyPI](https://pypi.org).
 
 ## Setup
 In the following we assume these:
-- Your project is hosted under www.github.com/username/project-name <strong id="xxx">Hello</strong>
-
+- the project is named <span style="color: red">project-name</span>
+- the main project branch is <span style="color: green">master</span>
+- the project is hosted under http://www.github.com\/<span style="color: gold">username</span>/<span style="color: green">project-name</span>
+- you have an coverage.io https://app.codecov.io\/gh/<span style="color: gold">username</span>/<span style="color: red">project-name</span>
 
 ### Install
 Install the package with:
