@@ -1,13 +1,5 @@
-<script src="https://code.jquery.com/jquery-3.7.0.slim.min.js"></script>
-<script>
-$( document ).ready(function() { 
-    $( "#xxx" ).click(function( event ) {
-        alert( "Thanks for visiting!" );
-    }); 
-});
-</script>
 # setuptools-github
-
+<script>alert("hello");</script>
 [![PyPI version](https://img.shields.io/pypi/v/setuptools-github.svg?color=blue)](https://pypi.org/project/setuptools-github)
 [![Python versions](https://img.shields.io/pypi/pyversions/setuptools-github.svg)](https://pypi.org/project/setuptools-github)
 [![Build](https://github.com/cav71/setuptools-github/actions/workflows/master.yml/badge.svg)](https://github.com/cav71/setuptools-github/actions)
