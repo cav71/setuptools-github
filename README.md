@@ -18,15 +18,16 @@ aimed at delivering packages into [PyPI](https://pypi.org).
 - [Prerequisites](#setup-prerequisites)
   - [Install](#setup-install)
   - [Add secrets](#setup-add-secrets)
+- [Project setup](#project-setup)
 
 
 ## Prerequisites
 
 In the following we assume these:
 
-- the project is named **project-name**
+- the github project is named **project-name**
 - the main project branch is **master**
-- the project is hosted under http:\/\/www.github.com\/**username**/**project-name**
+- the project is hosted under https:\/\/www.github.com\/**username**/**project-name**
 - you have coverage.io account https:\/\/app.codecov.io\/gh/**username**/**project-name**
 
 > **NOTE**: You need to change **project-name**, **username** and **master** to match your project.
@@ -44,15 +45,26 @@ conda install -c conda-forge setuptools-github
 
 Secrets are stored for the **package-name** repository under:
 
-https:\//github.com/**username**/**project-name**/settings/secrets/actions)
+https:\//github.com/**username**/**project-name**/settings/secrets/actions
 
 These are needed:
 - TWINE_PASSWORD
 - TWINE_USERNAME
 - CODECOV_TOKEN
 
+## Project setup
 
-### Setup the master branch
+We assume:
+- the python package is **project_name**
+- it is rooted under **package-name**/**src** directory
+- a **initfile** is stored under **package-name**/**src**/**project_name**/__init__.py
+- tests are stored under **package-name**/**tests**
+- a requirements.txt file for tests is under **package-name**/**tests**/requirements.txt
+
+> **NOTE**: You need to change these values to match your project
+
+### Setup the initfile
+
 Create a new `src/package_name/__init__.py` file to store the package information:
 ```
 __version__ = "N.M.O"  # replace N, M and O with numerical values (eg. 0.0.0)
