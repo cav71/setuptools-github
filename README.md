@@ -1,18 +1,40 @@
-setuptools-github
-=================
+<script src="https://code.jquery.com/jquery-3.7.0.slim.min.js"></script>
+<script>
+$( document ).ready(function() { 
+    $( "#xxx" ).click(function( event ) {
+        alert( "Thanks for visiting!" );
+    }); 
+});
+</script>
+# setuptools-github
 
 [![PyPI version](https://img.shields.io/pypi/v/setuptools-github.svg?color=blue)](https://pypi.org/project/setuptools-github)
 [![Python versions](https://img.shields.io/pypi/pyversions/setuptools-github.svg)](https://pypi.org/project/setuptools-github)
 [![Build](https://github.com/cav71/setuptools-github/actions/workflows/master.yml/badge.svg)](https://github.com/cav71/setuptools-github/actions)
-[![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](Black)
 [![Coverage](https://codecov.io/gh/cav71/setuptools-github/branch/master/graph/badge.svg)](Coverage)
+
+[![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](Black)
+[![License](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
+[![Types - Mypy](https://img.shields.io/badge/types-Mypy-blue.svg)](https://mypy-lang.org/)
+
 
 
 ## Quick start
 setuptools-github helps to implement a simple project life cycle
 aimed at delivering packages into [PyPI](https://pypi.org).
 
-Install it with:
+**Table of Contents**
+- [Setup](#setup-project) prerequisites
+  - [Install](#setup-install) setuptools-github
+
+
+## Setup
+In the following we assume these:
+- Your project is hosted under www.github.com/username/project-name <strong id="xxx">Hello</strong>
+
+
+### Install
+Install the package with:
 ```bash
 pip install setuptools-github
  or
