@@ -15,27 +15,38 @@ setuptools-github helps to implement a simple project life cycle
 aimed at delivering packages into [PyPI](https://pypi.org).
 
 **Table of Contents**
-- [Setup](#setup-project) prerequisites
-  - [Install](#setup-install) setuptools-github
+- [Prerequisites](#setup-prerequisites)
+  - [Install](#setup-install)
+  - [Add secrets](#setup-add-secrets)
 
 
-## Setup
+## Prerequisites
+
 In the following we assume these:
-- the project is named <span style="color: red">project-name</span>
-- the main project branch is <span style="color: green">master</span>
-- the project is hosted under http://www.github.com\/<span style="color: gold">username</span>/<span style="color: green">project-name</span>
-- you have an coverage.io https://app.codecov.io\/gh/<span style="color: gold">username</span>/<span style="color: red">project-name</span>
+
+- the project is named **project-name**
+- the main project branch is **master**
+- the project is hosted under http://www.github.com\/**username**/**project-name**
+- you have coverage.io account https://app.codecov.io\/gh/**username**/**project-name**
+
+> **NOTE**: You need to change **project-name**, **username** and **master** to match your project.
 
 ### Install
+
 Install the package with:
 ```bash
 pip install setuptools-github
  or
 conda install -c conda-forge setuptools-github
 ```
+
 ### Add secrets
-First you need to install the secrets for the **package-name** repository
-[here](https://github.com/cav71/setuptools-github/settings/secrets/actions)
+
+Secrets are stored for the **package-name** repository under:
+
+https:\//github.com/**username**/**project-name**/settings/secrets/actions)
+
+These are needed:
 - TWINE_PASSWORD
 - TWINE_USERNAME
 - CODECOV_TOKEN
