@@ -26,8 +26,8 @@ In the following we assume these:
 
 - the project is named **project-name**
 - the main project branch is **master**
-- the project is hosted under http://www.github.com\/**username**/**project-name**
-- you have coverage.io account https://app.codecov.io\/gh/**username**/**project-name**
+- the project is hosted under http:\/\/www.github.com\/**username**/**project-name**
+- you have coverage.io account https:\/\/app.codecov.io\/gh/**username**/**project-name**
 
 > **NOTE**: You need to change **project-name**, **username** and **master** to match your project.
 
