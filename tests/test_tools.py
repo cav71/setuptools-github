@@ -37,7 +37,7 @@ def T1(txt):
 
 def test_abort_exception():
     "test the AbortExecution exception"
-    a = tools.AbortExecution(
+    a = tools.AbortExecutionError(
         "a one-line error message",
         """
         A multi line
@@ -83,7 +83,7 @@ hint:
 """
     )
 
-    a = tools.AbortExecution("hello world")
+    a = tools.AbortExecutionError("hello world")
     assert a.message == "hello world"
     assert a.explain == ""
     assert a.hint == ""
@@ -143,8 +143,8 @@ C = "hello"
     )
     assert 12 == tools.get_module_var(path, "A")
     assert "hello" == tools.get_module_var(path, "C")
-    pytest.raises(AssertionError, tools.get_module_var, path, "B")
-    pytest.raises(tools.MissingVariable, tools.get_module_var, path, "X1")
+    pytest.raises(tools.ValidationError, tools.get_module_var, path, "B")
+    pytest.raises(tools.MissingVariableError, tools.get_module_var, path, "X1")
 
 
 def test_set_module_var(tmp_path):
@@ -274,13 +274,13 @@ def test_update_version_beta(git_project_factory):
     repo.branch("beta/0.0.2", "master")
     assert repo.branch() == "beta/0.0.2"
     pytest.raises(
-        tools.InvalidGithubReference, tools.update_version, repo.initfile, abort=False
+        tools.InvalidVersionError, tools.update_version, repo.initfile, abort=False
     )
 
     github_dump = GITHUB["beta"].copy()
     github_dump["ref"] = "refs/heads/beta/0.0.2"
     pytest.raises(
-        tools.InvalidGithubReference,
+        tools.InvalidVersionError,
         tools.update_version,
         repo.initfile,
         github_dump,

@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import List, Callable, Dict, TypeVar
+from typing import Callable, Dict, List, TypeVar
 
 from mypy_extensions import Arg, DefaultArg
 
@@ -22,7 +22,7 @@ ErrorFunctionType = TypeVar(
 
 
 def check_repo_mods(error: ErrorFunctionType, workdir: Path, initfile: Path):
-    from pygit2 import Repository, GIT_STATUS_WT_NEW, GIT_STATUS_IGNORED  # type: ignore
+    from pygit2 import GIT_STATUS_IGNORED, GIT_STATUS_WT_NEW, Repository  # type: ignore
 
     repo = Repository(workdir)
 

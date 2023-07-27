@@ -1,28 +1,31 @@
 from __future__ import annotations
 
-import re
 import ast
 import json
-
+import re
 from pathlib import Path
-from typing import Any, Union, Tuple, Optional
+from typing import Any
 
 from . import scm
 
 
-class GithubError(Exception):
+class ToolsError(Exception):
     pass
 
 
-class MissingVariable(GithubError):
+class ValidationError(ToolsError):
     pass
 
 
-class InvalidGithubReference(GithubError):
+class InvalidVersionError(ToolsError):
     pass
 
 
-class AbortExecution(Exception):
+class MissingVariableError(ToolsError):
+    pass
+
+
+class AbortExecutionError(Exception):
     @staticmethod
     def _strip(txt):
         txt = txt or ""
@@ -31,7 +34,7 @@ class AbortExecution(Exception):
         return txt[:-1] if txt.endswith("\n") else txt
 
     def __init__(
-        self, message: str, explain: Optional[str] = None, hint: Optional[str] = None
+        self, message: str, explain: str | None = None, hint: str | None = None
     ):
         self.message = message.strip()
         self._explain = explain
@@ -64,7 +67,8 @@ def urmtree(path: Path):
         for p in path.rglob("*"):
             p.chmod(S_IWUSR)
     rmtree(path, ignore_errors=True)
-    assert not path.exists()
+    if path.exists():
+        raise RuntimeError(f"cannot remove {path=}")
 
 
 def indent(txt: str, pre: str = " " * 2) -> str:
@@ -88,8 +92,8 @@ def list_of_paths(paths: str | Path | list[str | Path]) -> list[Path]:
 
 
 def get_module_var(
-    path: Union[Path, str], var: str = "__version__", abort=True
-) -> Optional[str]:
+    path: Path | str, var: str = "__version__", abort=True
+) -> str | None:
     """extract from a python module in path the module level <var> variable
 
     Args:
@@ -112,7 +116,7 @@ def get_module_var(
             self.keys = keys
             self.result = {}
 
-        def visit_Module(self, node):
+        def visit_Module(self, node):  # noqa: N802
             # we extract the module level variables
             for subnode in ast.iter_child_nodes(node):
                 if not isinstance(subnode, ast.Assign):
@@ -120,12 +124,11 @@ def get_module_var(
                 for target in subnode.targets:
                     if target.id not in self.keys:
                         continue
-                    assert isinstance(
-                        subnode.value, (ast.Num, ast.Str, ast.Constant)
-                    ), (
-                        f"cannot extract non Constant variable "
-                        f"{target.id} ({type(subnode.value)})"
-                    )
+                    if not isinstance(subnode.value, (ast.Num, ast.Str, ast.Constant)):
+                        raise ValidationError(
+                            f"cannot extract non Constant variable "
+                            f"{target.id} ({type(subnode.value)})"
+                        )
                     if isinstance(subnode.value, ast.Str):
                         value = subnode.value.s
                     elif isinstance(subnode.value, ast.Num):
@@ -141,13 +144,13 @@ def get_module_var(
         tree = ast.parse(Path(path).read_text())
         v.visit(tree)
     if var not in v.result and abort:
-        raise MissingVariable(f"cannot find {var} in {path}", path, var)
+        raise MissingVariableError(f"cannot find {var} in {path}", path, var)
     return v.result.get(var, None)
 
 
 def set_module_var(
-    path: Union[str, Path], var: str, value: Any, create: bool = True
-) -> Tuple[Any, str]:
+    path: str | Path, var: str, value: Any, create: bool = True
+) -> tuple[Any, str]:
     """replace var in path with value
 
     Args:
@@ -222,7 +225,7 @@ def bump_version(version: str, mode: str) -> str:
 
 def update_version(
     initfile: str | Path, github_dump: str | None = None, abort: bool = True
-) -> Optional[str]:
+) -> str | None:
     """extracts version information from github_dump and updates initfile in-place
 
     Args:
@@ -238,7 +241,7 @@ def update_version(
 
     if not (repo or github_dump):
         if abort:
-            raise GithubError(f"cannot find a valid git repo for {path}")
+            raise scm.InvalidGitRepoError(f"cannot find a valid git repo for {path}")
         return get_module_var(path, "__version__")
 
     if not github_dump and repo:
@@ -262,9 +265,9 @@ def update_version(
         # this fixes the issue
         match1 = expr1.search(current or "")
         if not match1:
-            raise InvalidGithubReference(f"cannot parse current version '{current}'")
+            raise InvalidVersionError(f"cannot parse current version '{current}'")
         if match1.group("version") != match.group("version"):
-            raise InvalidGithubReference(
+            raise InvalidVersionError(
                 f"building package for {current} from '{gdata['ref']}' "
                 f"branch ({match.groupdict()} mismatch {match1.groupdict()})"
             )

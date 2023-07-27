@@ -10,13 +10,14 @@ Or will release the beta branch and will move inot the next minor
 
 """
 from __future__ import annotations
+
+import argparse
 import logging
 import re
 import sys
 from pathlib import Path
-import argparse
-from . import cli, tools, scm
 
+from . import cli, scm, tools
 
 log = logging.getLogger(__name__)
 
@@ -78,8 +79,9 @@ def main(options) -> None:
         options.error(f"cannot find version file {options.initfile}")
 
     version = tools.get_module_var(options.initfile, "__version__")
-    assert version
     log.info("got version %s for branch '%s'", version, options.repo.head.shorthand)
+    if not version:
+        raise tools.InvalidVersionError(f"cannot find a version in {options.initfile}")
 
     # fetching all remotes
     options.repo(["fetch", "--all"])
@@ -126,7 +128,7 @@ def main(options) -> None:
             options.initfile, f"version bump {version} -> {new_version}"
         )
 
-        print(
+        print(  # noqa: T201
             tools.indent(
                 f"""
         The release is almost complete.

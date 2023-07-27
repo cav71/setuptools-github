@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 import argparse
-import logging
 import functools
+import logging
 import sys
 from typing import Any, Callable, Protocol
+
 from . import tools
 
 
@@ -12,7 +14,7 @@ class ErrorFn(Protocol):
         ...
 
 
-class AbortExecution(Exception):
+class AbortExecutionError(Exception):
     @staticmethod
     def _strip(txt):
         txt = txt or ""
@@ -113,7 +115,7 @@ def cli(
                     hint: str = "",
                     usage: str | None = None,
                 ):
-                    raise AbortExecution(message, explain, hint, usage)
+                    raise AbortExecutionError(message, explain, hint, usage)
 
                 errorfn: ErrorFn = functools.partial(error, usage=parser.format_usage())
                 options.error = errorfn
@@ -123,9 +125,9 @@ def cli(
                     options = process_options(options, errorfn) or options
 
                 return main(options)
-            except AbortExecution as exc:
-                print(str(exc), file=sys.stderr)
-                raise SystemExit(2)
+            except AbortExecutionError as err:
+                print(str(err), file=sys.stderr)  # noqa: T201
+                raise SystemExit(2) from None
             except Exception:
                 raise
 
