@@ -22,7 +22,7 @@ GITHUB = {
 }
 
 
-def T(txt):
+def T(txt):  # noqa: N802
     from textwrap import dedent
 
     txt = dedent(txt)
@@ -31,7 +31,7 @@ def T(txt):
     return txt
 
 
-def T1(txt):
+def T1(txt):  # noqa: N802
     return T(txt).rstrip("\n")
 
 
@@ -70,7 +70,7 @@ Another multiline hint how
     )
 
     assert (
-        f"\n{str(a)}\n"
+        f"\n{a!s}\n"
         == """
 a one-line error message
   A multi line

@@ -9,6 +9,7 @@ pre-commit
 pyfakefs
 pygit2
 pytest
+ruff
 typing_extensions
 pytest-cov
 pytest-html
