@@ -2,7 +2,7 @@ from setuptools_github import cli
 
 
 def test_exception():
-    obj = cli.AbortExecution(
+    obj = cli.AbortExecutionError(
         message="this is a short one-liner",
         explain="""
           It looks the repository doesn't have any branch,
