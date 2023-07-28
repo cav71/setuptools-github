@@ -131,9 +131,9 @@ On completion static and dynamic tests are supported.
 In order to prepare for a release a new **beta/N.M.O** branch should be created:
 ```python
 
-python -m setuptools_github.script make-beta 
+python -m setuptools_github.script make-beta src/project_name/__init__.py 
 or
-setuptools-github make-beta
+setuptools-github make-beta src/project_name/__init__.py
 ```
 
 Every commit on **beta/N.M.O** branch ASSUMING [Secrets](#add-secrets) have been set
@@ -156,9 +156,9 @@ To release an official package for **project-N.M.O** from
 the **beta/N.M.O** branch:
 ```python
 
-python -m setuptools_github.script micro 
+python -m setuptools_github.script micro src/project_name/__init__.py
 or
-setuptools-github make-beta micro
+setuptools-github make-beta micro src/project_name/__init__.py
 ```
 This will tag the HEAD on **beta/N.M.O** branch 
 with the **release/N.M.O** tag and increment the **initfile** with the

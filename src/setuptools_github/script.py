@@ -6,7 +6,7 @@ This script will either create a new beta branch:
 
 Or will release the beta branch and will move inot the next minor
 
-    setuptools-github {major|minor|micro} ./src/setuptools_github/__init__.py
+    setuptools-github {major|minor|micro|make-beta} ./src/setuptools_github/__init__.py
 
 """
 from __future__ import annotations
@@ -31,8 +31,8 @@ def add_arguments(parser: argparse.ArgumentParser):
         default=Path("."),
         type=Path,
     )
-    parser.add_argument("initfile", metavar="__init__.py", type=Path)
     parser.add_argument("mode", choices=["micro", "minor", "major", "make-beta"])
+    parser.add_argument("initfile", metavar="__init__.py", type=Path)
 
 
 def process_options(
