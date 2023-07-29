@@ -1,4 +1,3 @@
-
 task:
   name: test
   container:
@@ -6,9 +5,5 @@ task:
       - image: arm_container
       - image: windows_container
       - image: macos_instance
-  script:
-    name: testme
-    - echo "hi there!"
-  script:
-    name: testme2
-    - echo "hi there 2!"
+  testme_script: echo "hi there!"
+  testme2_script: echo "hi there 2!"
