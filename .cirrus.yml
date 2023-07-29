@@ -1,0 +1,13 @@
+task:
+  name: test
+  container:
+    matrix:
+      - image: arm_container
+      - image: windows_container
+      - image: macos_instance
+  script:
+    name: testme
+    - echo "hi there!"
+  script:
+    name: testme2
+    - echo "hi there 2!"
