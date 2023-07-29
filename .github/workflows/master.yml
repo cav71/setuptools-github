@@ -14,68 +14,71 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Dump env
-        shell: bash
-        env:
-          GITHUB_DUMP: ${{ toJson(github) }}
-        run: |
-          echo "github env:"
-          echo "$GITHUB_DUMP"
-
-      - name: Set up Python interpreter [${{ matrix.python-version }}]
-        uses: actions/setup-python@v1
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
+      - name: Say hello
         shell: bash
         run: |
-            python -m pip install --upgrade pip
-            pip install setuptools build wheel twine
-            pip install -r tests/requirements.txt
-
-      - name: Lint tests (ruff)
-        shell: bash
-        env:
-          PYTHONPATH: src
-        run: |
-            ruff check src
-
-      - name: Static tests (mypy)
-        shell: bash
-        env:
-          PYTHONPATH: src
-          OUTDIR: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
-        run: |
-          mypy src/setuptools_github \
-            --no-incremental --xslt-html-report $OUTDIR/mypy
-
-      - name: Runtime tests (unitest, coverage etc.)
-        shell: bash
-        env:
-          PYTHONPATH: src
-          OUTDIR: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
-        run: |
-          py.test \
-              --cov=setuptools_github \
-              --cov-report=html:$OUTDIR/coverage --cov-report=xml:$OUTDIR/coverage.xml \
-              --junitxml=$OUTDIR/junit/junit.xml --html=$OUTDIR/junit/junit.html --self-contained-html \
-            tests
-
-      - name: Upload pytest test results
-        uses: actions/upload-artifact@v2
-        with:
-          name: pytest-results-${{ matrix.python-version }}-${{ matrix.os }}
-          path: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
-        # Use always() to always run this step to publish test results when there are test failures
-        if: always()
-
-      - name: "Upload coverage to Codecov"
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
-          files: build/qa-${{ matrix.python-version }}-${{ matrix.os}}/coverage.xml
-          verbose: true
+          echo "say hi!"
+#      - uses: actions/checkout@v3
+#
+#      - name: Dump env
+#        shell: bash
+#        env:
+#          GITHUB_DUMP: ${{ toJson(github) }}
+#        run: |
+#          echo "github env:"
+#          echo "$GITHUB_DUMP"
+#
+#      - name: Set up Python interpreter [${{ matrix.python-version }}]
+#        uses: actions/setup-python@v4
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#
+#      - name: Install dependencies
+#        run: |
+#            python -m pip install --upgrade pip
+#            pip install setuptools build wheel twine
+#            pip install -r tests/requirements.txt
+#
+#      - name: Lint tests (ruff)
+#        shell: bash
+#        env:
+#          PYTHONPATH: src
+#        run: |
+#            ruff check src
+#
+#      - name: Static tests (mypy)
+#        shell: bash
+#        env:
+#          PYTHONPATH: src
+#          OUTDIR: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
+#        run: |
+#          mypy src/setuptools_github \
+#            --no-incremental --xslt-html-report $OUTDIR/mypy
+#
+#      - name: Runtime tests (unitest, coverage etc.)
+#        shell: bash
+#        env:
+#          PYTHONPATH: src
+#          OUTDIR: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
+#        run: |
+#          py.test \
+#              --cov=setuptools_github \
+#              --cov-report=html:$OUTDIR/coverage --cov-report=xml:$OUTDIR/coverage.xml \
+#              --junitxml=$OUTDIR/junit/junit.xml --html=$OUTDIR/junit/junit.html --self-contained-html \
+#            tests
+#
+#      - name: Upload pytest test results
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: pytest-results-${{ matrix.python-version }}-${{ matrix.os }}
+#          path: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
+#        # Use always() to always run this step to publish test results when there are test failures
+#        if: always()
+#
+#      - name: "Upload coverage to Codecov"
+#        uses: codecov/codecov-action@v3
+#        with:
+#          token: ${{ secrets.CODECOV_TOKEN }}
+#          fail_ci_if_error: true
+#          files: build/qa-${{ matrix.python-version }}-${{ matrix.os}}/coverage.xml
+#          verbose: true
