@@ -19,7 +19,7 @@ def main():
         for img in images:
             tasks.append(task(
                 name="test",
-                instance=container(img),
+                instance=cont(img),
                 instructions=[
                     script("abc", "echo 'hi there1'"),
                     script("def", "echo 'hi there2'"),
