@@ -1,12 +1,14 @@
-container:
-  matrix:
-    image: python:3.8
-    image: python:3.9
-    image: python:3.10
-    image: python:3.11
 
 task:
   name: test
+
+  container:
+    matrix:
+      image: python:3.8
+      image: python:3.9
+      image: python:3.10
+      image: python:3.11
+
   testme_script:
     - echo "hi there!"
   testme2_script:
