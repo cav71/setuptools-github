@@ -2,11 +2,11 @@
 
 This script will either create a new beta branch:
 
-     setuptools-github beta ./src/setuptools_github/__init__.py
+     setuptools-github make-beta ./src/package_name/__init__.py
 
 Or will release the beta branch and will move inot the next minor
 
-    setuptools-github {major|minor|micro|make-beta} ./src/setuptools_github/__init__.py
+    setuptools-github {major|minor|micro} ./src/package_name/__init__.py
 
 """
 from __future__ import annotations
@@ -99,6 +99,20 @@ def main(options) -> None:
         log.info("creating branch '%s'", f"/beta/{version}")
         options.repo.branch(f"beta/{version}", master)
         options.repo(["checkout", master])
+        print(  # noqa: T201
+            tools.indent(
+                f"""
+        The release branch beta/{version} has been created.
+
+        To complete the release:
+            git push origin beta/{version}
+
+        To revert this beta branch:
+            git branch -D beta/{version}
+        """
+            ),
+            file=sys.stderr,
+        )
     elif options.mode in {"micro", "minor", "major"}:
         # we need to be in the beta/N.M.O branch
         expr = re.compile(r"refs/heads/beta/(?P<beta>\d+([.]\d+)*)$")
@@ -133,10 +147,11 @@ def main(options) -> None:
                 f"""
         The release is almost complete.
 
-        To proceed:
+        To complete the release:
             git push origin release/{version}
+            git push origin master
 
-        To rever this script:
+        To revert this release:
             git reset --hard HEAD~1
             git tag -d release/{version}
         """
