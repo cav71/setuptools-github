@@ -329,7 +329,7 @@ def test_update_version_release(git_project_factory):
 def test_process(git_project_factory):
     def write_tfile(tfile):
         tfile.write_text("""
-{% for k, v in d.items() | sort -%}
+{% for k, v in ctx.items() | sort -%}
 Key[{{k}}] = {{v}}
 {% endfor %}
 """)

@@ -328,6 +328,14 @@ def process(
         str: the new version for the package
     """
     from jinja2 import Environment
+    from argparse import Namespace
+
+    class Context(Namespace):
+        def items(self):
+            for name, value in self.__dict__.items():
+                if name.startswith("_"):
+                    continue
+                yield (name, value)
 
     data = get_data(initfile, github_dump, abort)
     set_module_var(initfile, "__version__", data["version"])
@@ -336,5 +344,5 @@ def process(
     env = Environment()
     for path in list_of_paths(paths):
         tmpl = env.from_string(path.read_text())
-        path.write_text(tmpl.render(d=data))
+        path.write_text(tmpl.render(ctx=Context(**data)))
     return data
