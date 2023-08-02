@@ -9,7 +9,7 @@ from setuptools import setup, find_namespace_packages  # noqa E402
 
 initfile = pathlib.Path(__file__).parent / "src/setuptools_github/__init__.py"
 readme = pathlib.Path(__file__).parent / "README.md"
-version = tools.process(initfile, os.getenv("GITHUB_DUMP"), readme)
+version = tools.process(initfile, os.getenv("GITHUB_DUMP"), readme)["version"]
 
 packages = find_namespace_packages(where="src")
 
