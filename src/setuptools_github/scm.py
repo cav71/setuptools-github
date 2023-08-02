@@ -178,6 +178,9 @@ class GitRepo(GitRepoBase):
                 )
         return result
 
+    def dirty(self) -> bool:
+        return bool(self.status(untracked_files="no"))
+
     def commit(
         self,
         paths: ListOfArgs,
