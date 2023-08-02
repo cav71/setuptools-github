@@ -331,6 +331,7 @@ def process(
     initfile: str | Path,
     github_dump: str | None = None,
     paths: str | Path | list[str | Path] | None = None,
+    fixers: dict[str, str] | None = None,
     abort: bool = True,
 ) -> dict[str, str | None]:
     """get version from github_dump and updates initfile/paths
@@ -372,6 +373,9 @@ def process(
     env = Environment(autoescape=True)
     env.filters["urlquote"] = partial(quote, safe="")
     for path in list_of_paths(paths):
-        tmpl = env.from_string(path.read_text())
+        txt = path.read_text()
+        for old, new in (fixers or {}).items():
+            txt = txt.replace(old, new, 1)
+        tmpl = env.from_string(txt)
         path.write_text(tmpl.render(ctx=Context(**data)))
     return data

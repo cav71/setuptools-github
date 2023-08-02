@@ -7,6 +7,12 @@ from setuptools_github import tools  # noqa E402
 from setuptools import setup, find_namespace_packages  # noqa E402
 
 
+fixers = {
+    "/actions/workflows/master.yml/badge.svg": "/actions/workflows/{{ ctx.workflow }}.yml/badge.svg",  # noqa: E501
+    "/actions/workflows/master.yml": "/actions/runs/{{ runid }}",
+    "/tree/master/graph/badge.svg?token=SIUMZ7MT5T": "/tree/{{ ctx.branch|urlquote }}/graph/badge.svg?token=SIUMZ7MT5T",  # noqa: E501
+    "/tree/master": "/tree/{{ ctx.branch|urlquote }}",
+}
 initfile = pathlib.Path(__file__).parent / "src/setuptools_github/__init__.py"
 readme = pathlib.Path(__file__).parent / "README.md"
 version = tools.process(initfile, os.getenv("GITHUB_DUMP"), readme)["version"]
