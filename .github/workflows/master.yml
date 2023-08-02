@@ -41,7 +41,7 @@ jobs:
         env:
           PYTHONPATH: src
         run: |
-           ruff check src
+           ruff check .
 
       - name: Static tests (mypy)
         shell: bash
