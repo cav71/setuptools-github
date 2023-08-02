@@ -2,7 +2,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/setuptools-github.svg?color=blue)](https://pypi.org/project/setuptools-github)
 [![Python versions](https://img.shields.io/pypi/pyversions/setuptools-github.svg)](https://pypi.org/project/setuptools-github)
 [![Build](https://github.com/cav71/setuptools-github/actions/workflows/{{ctx.branch.partition("/")[0]}}.yml/badge.svg)](https://github.com/cav71/setuptools-github/actions)
-[![Codecov](https://codecov.io/gh/cav71/setuptools-github/branch/{{ctx.current|urlquote}}/graph/badge.svg?token=SIUMZ7MT5T)](https://codecov.io/gh/cav71/setuptools-github/tree/{{ctx.current|urlquote}})
+[![Codecov](https://codecov.io/gh/cav71/setuptools-github/branch/{{ctx.branch|urlquote}}/graph/badge.svg?token=SIUMZ7MT5T)](https://codecov.io/gh/cav71/setuptools-github/tree/{{ctx.branch|urlquote}})
 
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](Black)
 [![License](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)

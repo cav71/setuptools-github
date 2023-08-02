@@ -361,6 +361,8 @@ def process(
     env = Environment()
     env.filters["urlquote"] = partial(quote, safe="")
     for path in list_of_paths(paths):
+        # print(env.from_string(path.read_text()).render(ctx=Context(**data))[:400])
+        breakpoint()
         tmpl = env.from_string(path.read_text())
         path.write_text(tmpl.render(ctx=Context(**data)))
     return data
