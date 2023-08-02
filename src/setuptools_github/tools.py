@@ -334,9 +334,18 @@ def process(
 
     Returns:
         str: the new version for the package
+
+    Example:
+        {'branch': 'beta/0.3.1',
+         'build': 0,
+         'current': '0.3.1',
+         'hash': 'c9e484a*',
+         'version': '0.3.1b0'}
     """
     from jinja2 import Environment
     from argparse import Namespace
+    from urllib.parse import quote
+    from functools import partial
 
     class Context(Namespace):
         def items(self):
@@ -350,6 +359,7 @@ def process(
     set_module_var(initfile, "__hash__", data["hash"])
 
     env = Environment()
+    env.filters["urlquote"] = partial(quote, safe="")
     for path in list_of_paths(paths):
         tmpl = env.from_string(path.read_text())
         path.write_text(tmpl.render(ctx=Context(**data)))
