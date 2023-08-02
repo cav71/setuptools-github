@@ -1,12 +1,15 @@
 # setuptools-github
+
 [![PyPI version](https://img.shields.io/pypi/v/setuptools-github.svg?color=blue)](https://pypi.org/project/setuptools-github)
 [![Python versions](https://img.shields.io/pypi/pyversions/setuptools-github.svg)](https://pypi.org/project/setuptools-github)
-[![Build](https://github.com/cav71/setuptools-github/actions/workflows/{{ctx.branch.partition("/")[0]}}.yml/badge.svg)](https://github.com/cav71/setuptools-github/actions)
+[![License](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
+
+[![Build](https://github.com/cav71/setuptools-github/actions/workflows/{{ctx.branch.partition("/")[0]}}.yml/badge.svg)](https://github.com/cav71/setuptools-github/actions/runs/{{runid}})
 [![Codecov](https://codecov.io/gh/cav71/setuptools-github/branch/{{ctx.branch|urlquote}}/graph/badge.svg?token=SIUMZ7MT5T)](https://codecov.io/gh/cav71/setuptools-github/tree/{{ctx.branch|urlquote}})
 
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](Black)
-[![License](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
-[![Types - Mypy](https://img.shields.io/badge/types-Mypy-blue.svg)](https://mypy-lang.org/)
+[![Mypy](https://img.shields.io/badge/types-Mypy-blue.svg)](https://mypy-lang.org/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 
 ## Quick start

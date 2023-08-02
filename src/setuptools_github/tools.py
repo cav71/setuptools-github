@@ -255,6 +255,7 @@ def get_data(
         "branch": None,
         "hash": None,
         "build": None,
+        "runid": None,
     }
 
     path = Path(initfile)
@@ -270,6 +271,7 @@ def get_data(
             "ref": repo.head.name,
             "sha": repo.head.target.hex[:7],
             "run_number": 0,
+            "run_id": 0,
         }
         dirty = repo.dirty()
     else:
@@ -282,6 +284,7 @@ def get_data(
     result["branch"] = lstrip(gdata["ref"], "refs/heads/")
     result["hash"] = gdata["sha"] + ("*" if dirty else "")
     result["build"] = gdata["run_number"]
+    result["runid"] = gdata["run_id"]
 
     current = result["current"]
     if match := expr.search(gdata["ref"]):
@@ -340,7 +343,9 @@ def process(
          'build': 0,
          'current': '0.3.1',
          'hash': 'c9e484a*',
-         'version': '0.3.1b0'}
+         'version': '0.3.1b0',
+         'runid': 0
+        }
     """
     from argparse import Namespace
     from functools import partial

@@ -7,16 +7,19 @@ GITHUB = {
         "ref": "refs/heads/beta/0.0.4",
         "sha": "2169f90c22e",
         "run_number": "8",
+        "run_id": 123,
     },
     "release": {
         "ref": "refs/tags/release/0.0.3",
         "sha": "5547365c82",
         "run_number": "3",
+        "run_id": 456,
     },
     "master": {
         "ref": "refs/heads/master",
         "sha": "2169f90c",
         "run_number": "20",
+        "run_id": 789,
     },
 }
 
@@ -360,6 +363,7 @@ Key[branch] = master
 Key[build] = 0
 Key[current] = 1.2.3
 Key[hash] = {data['hash']}
+Key[runid] = 0
 Key[version] = 1.2.3
 """
 
@@ -376,5 +380,6 @@ Key[branch] = beta/1.2.3
 Key[build] = 0
 Key[current] = 1.2.3
 Key[hash] = {data['hash']}
+Key[runid] = 0
 Key[version] = 1.2.3b0
 """
