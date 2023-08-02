@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import collections
+import contextlib
 import os
-import sys
 import pathlib
 import shutil
-import contextlib
-import collections
 import subprocess
+import sys
 
 import pytest
 
@@ -176,8 +176,8 @@ def git_project_factory(request, tmp_path):
             return self
 
     def id_generator(size=6):
-        from string import ascii_uppercase, digits
         from random import choice
+        from string import ascii_uppercase, digits
 
         return "".join(choice(ascii_uppercase + digits) for _ in range(size))
 

@@ -1,5 +1,4 @@
 import pytest
-
 from setuptools_github import tools
 
 # this is the output from ${{ toJson(github) }}

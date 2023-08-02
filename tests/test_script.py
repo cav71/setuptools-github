@@ -1,4 +1,5 @@
 from argparse import Namespace
+
 from setuptools_github import script
 
 

@@ -342,10 +342,11 @@ def process(
          'hash': 'c9e484a*',
          'version': '0.3.1b0'}
     """
-    from jinja2 import Environment
     from argparse import Namespace
-    from urllib.parse import quote
     from functools import partial
+    from urllib.parse import quote
+
+    from jinja2 import Environment
 
     class Context(Namespace):
         def items(self):
