@@ -8,7 +8,8 @@ from setuptools import setup, find_namespace_packages  # noqa E402
 
 
 initfile = pathlib.Path(__file__).parent / "src/setuptools_github/__init__.py"
-version = tools.update_version(initfile, os.getenv("GITHUB_DUMP"))
+readme = pathlib.Path(__file__).parent / "README.md"
+version = tools.process(initfile, os.getenv("GITHUB_DUMP"), readme)
 
 packages = find_namespace_packages(where="src")
 
@@ -19,9 +20,13 @@ setup(
     packages=packages,
     package_dir={"setuptools_github": "src/setuptools_github"},
     description="supports github releases",
-    long_description=pathlib.Path("README.md").read_text(),
+    long_description=readme.read_text(),
     long_description_content_type="text/markdown",
-    install_requires=["setuptools"],
+    install_requires=[
+        "setuptools",
+        "typing-extensions",
+        "jinja2",
+    ],
     entry_points={
         "console_scripts": [
             "setuptools-github=setuptools_github.script:main",
