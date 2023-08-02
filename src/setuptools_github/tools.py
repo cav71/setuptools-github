@@ -359,7 +359,7 @@ def process(
     set_module_var(initfile, "__version__", data["version"])
     set_module_var(initfile, "__hash__", data["hash"])
 
-    env = Environment()
+    env = Environment(autoescape=True)
     env.filters["urlquote"] = partial(quote, safe="")
     for path in list_of_paths(paths):
         tmpl = env.from_string(path.read_text())

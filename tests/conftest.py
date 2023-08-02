@@ -62,7 +62,7 @@ def scripter(request, tmp_path_factory, datadir):
                 fpout = stack.enter_context((self.workdir / "stdout.txt").open("w"))
                 fperr = stack.enter_context((self.workdir / "stderr.txt").open("w"))
                 self.p = subprocess.Popen(
-                    cmd,
+                    cmd,  # noqa: S603
                     cwd=self.workdir if cwd is True else cwd,
                     stdout=fpout,
                     stderr=fperr,
@@ -119,12 +119,9 @@ def git_project_factory(request, tmp_path):
         assert repo.workdir != repo1.workdir
 
     """
+
     class GitRepoBase(scm.GitRepo):
-        def init(
-            self,
-            force: bool = False,
-            nobranch: bool = False
-        ) -> GitRepoBase:
+        def init(self, force: bool = False, nobranch: bool = False) -> GitRepoBase:
             from shutil import rmtree
 
             if force:
@@ -134,7 +131,11 @@ def git_project_factory(request, tmp_path):
             if not nobranch:
                 self(["init", "-b", "master"])
             else:
-                self(["init",])
+                self(
+                    [
+                        "init",
+                    ]
+                )
 
             self(["config", "user.name", "First Last"])
             self(["config", "user.email", "user@email"])
@@ -179,10 +180,13 @@ def git_project_factory(request, tmp_path):
         from random import choice
         from string import ascii_uppercase, digits
 
-        return "".join(choice(ascii_uppercase + digits) for _ in range(size))
+        return "".join(
+            choice(ascii_uppercase + digits) for _ in range(size)  # noqa: S311
+        )
 
     return lambda subdir="": Project(tmp_path / (subdir or id_generator()))
     # or request.node.name
+
 
 #####################
 # Main flags/config #
