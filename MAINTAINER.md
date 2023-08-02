@@ -25,11 +25,9 @@ PYTHONPATH=$(pwd)/src \
 
 
 #### Betas
-Start a new beta branch:
+To test a beta/N.M.O branch:
 ```
-PYTHONPATH=src python -m setuptools_github.start_release micro $(pwd)/src/setuptools_github/__init__.py
-
-git push --set-upstream origin beta/0.2.2
+make build
 ```
 
 
