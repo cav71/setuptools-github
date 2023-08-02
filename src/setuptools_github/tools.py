@@ -87,7 +87,9 @@ def indent(txt: str, pre: str = " " * 2) -> str:
     return result if result.strip() else result.strip()
 
 
-def list_of_paths(paths: str | Path | list[str | Path]) -> list[Path]:
+def list_of_paths(paths: str | Path | list[str | Path] | None) -> list[Path]:
+    if not paths:
+        return []
     return [Path(s) for s in ([paths] if isinstance(paths, (str, Path)) else paths)]
 
 
@@ -311,8 +313,8 @@ def update_version(
 
 def process(
     initfile: str | Path,
-    paths: str | Path | list[str | Path],
     github_dump: str | None = None,
+    paths: str | Path | list[str | Path] | None = None,
     abort: bool = True,
 ) -> dict[str, str | None]:
     """get version from github_dump and updates initfile/paths

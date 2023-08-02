@@ -340,7 +340,7 @@ Key[{{k}}] = {{v}}
     # tfile won't appear in the repo.status() because is untracked
     tfile = write_tfile(repo.workdir / "test.txt")
 
-    data = tools.process(repo.initfile, tfile)
+    data = tools.process(repo.initfile, None, tfile)
 
     assert data["hash"][-1] != "*"
 
@@ -357,7 +357,7 @@ Key[version] = 1.2.3
     write_tfile(tfile)
     repo.branch("beta/1.2.3", "master")
 
-    data = tools.process(repo.initfile, tfile)
+    data = tools.process(repo.initfile, None, tfile)
     assert data["hash"][-1] != "*"
 
     assert tfile.read_text() == f"""
