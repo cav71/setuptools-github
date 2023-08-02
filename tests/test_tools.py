@@ -150,6 +150,18 @@ C = "hello"
     pytest.raises(tools.ValidationError, tools.get_module_var, path, "B")
     pytest.raises(tools.MissingVariableError, tools.get_module_var, path, "X1")
 
+    path.write_text(
+        """
+# a test file
+A = 12
+B = 3+5
+C = "hello"
+C = "hello2"
+# end of test
+"""
+    )
+    pytest.raises(tools.ValidationError, tools.get_module_var, path, "C")
+
 
 def test_set_module_var(tmp_path):
     "handles set_module_var cases"

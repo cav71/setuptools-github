@@ -141,6 +141,10 @@ def get_module_var(
                         value = subnode.value.n
                     else:
                         value = subnode.value.value
+                    if target.id in self.result:
+                        raise ValidationError(
+                            f"found multiple repeated variables {target.id}"
+                        )
                     self.result[target.id] = value
             return self.generic_visit(node)
 
@@ -168,6 +172,10 @@ def set_module_var(
     Returns:
         (str, str) the (<previous-var-value|None>, <the new text>)
     """
+
+    # validate the var
+    get_module_var(path, var, abort=False)
+
     # module level var
     expr = re.compile(f"^{var}\\s*=\\s*['\\\"](?P<value>[^\\\"']*)['\\\"]")
     fixed = None
@@ -179,8 +187,8 @@ def set_module_var(
         src.touch()
 
     input_lines = src.read_text().split("\n")
-    for line in reversed(input_lines):
-        if fixed:
+    for line in input_lines:
+        if fixed is not None:
             lines.append(line)
             continue
         match = expr.search(line)
@@ -190,8 +198,8 @@ def set_module_var(
                 x, y = match.span(1)
                 line = line[:x] + value + line[y:]
         lines.append(line)
-    txt = "\n".join(reversed(lines))
-    if not fixed and create:
+    txt = "\n".join(lines)
+    if (fixed is None) and create:
         if txt and txt[-1] != "\n":
             txt += "\n"
         txt += f'{var} = "{value}"'
