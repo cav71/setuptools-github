@@ -256,6 +256,7 @@ def get_data(
         "hash": None,
         "build": None,
         "runid": None,
+        "workflow": None,
     }
 
     path = Path(initfile)
@@ -285,6 +286,7 @@ def get_data(
     result["hash"] = gdata["sha"] + ("*" if dirty else "")
     result["build"] = gdata["run_number"]
     result["runid"] = gdata["run_id"]
+    result["workflow"] = result["branch"]
 
     current = result["current"]
     if match := expr.search(gdata["ref"]):
@@ -300,6 +302,9 @@ def get_data(
             )
         if match.group("what") == "beta":
             result["version"] = f"{match1.group('version')}b{gdata['run_number']}"
+            result["workflow"] = "beta"
+        else:
+            result["workflow"] = "tags"
     return result
 
 

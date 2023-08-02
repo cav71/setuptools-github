@@ -365,6 +365,7 @@ Key[current] = 1.2.3
 Key[hash] = {data['hash']}
 Key[runid] = 0
 Key[version] = 1.2.3
+Key[workflow] = master
 """
 
     # clean and switch to new branch
@@ -382,4 +383,5 @@ Key[current] = 1.2.3
 Key[hash] = {data['hash']}
 Key[runid] = 0
 Key[version] = 1.2.3b0
+Key[workflow] = beta
 """
