@@ -128,6 +128,7 @@ jobs:
           fail_ci_if_error: true
           files: qa-${{ matrix.python-version }}-${{ matrix.os }}/coverage.xml
           verbose: true
+          override_branch: ${{ github.ref_name }}
 
       - name: Build wheel packages
         env:
