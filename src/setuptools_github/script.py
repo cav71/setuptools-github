@@ -127,11 +127,15 @@ def main(options) -> None:
         if local != version:
             options.error(f"wrong version file {version=} != {local}")
 
+        # create an empty commit to mark the release
+        options.repo(["commit", "--allow-empty", "-m", f"released {version}"])
+
         # tag
         options.repo(["tag", "-a", f"release/{version}", "-m", f"released {version}"])
 
-        # switch to master
+        # switch to master (and incorporate the commit message)
         options.repo(["checkout", master])
+        options.repo(["merge", f"beta/{version}"])
 
         # bump version
         new_version = tools.bump_version(version, options.mode)
