@@ -14,66 +14,18 @@
 
 ## Quick start
 setuptools-github helps to implement a simple project life cycle
-aimed at delivering packages into [PyPI](https://pypi.org). Basically:
-- beta packages are built from a /beta/N.M.O branch generating a **project-name-N.M.ObX** into PyPI
-- tagging with /release/N.M.O a /beta/N.M.O branch commit will release **project-name-N.M.O**
-
-This integrates well with the standard release logic in PyPI (see [example](https://pypi.org/project/setuptools-github/#history))
-
-> **NOTE** for a pyproject.tom / hatch enabled version of this, please use
-> [hatch-ci plugin](https://pypi.org/project/hatch-ci)
-
-**Table of Contents**
-
-- [Prerequisites](#prerequisites)
-  - [Install](#install-setuptools-github)
-  - [Add secrets](#add-secrets)
-- [Project setup](#project-setup)
-
-
-## Prerequisites
-
-We make few assumption in the rest of this document:
-
-- the project is hosted under https://www.github.com/<username>/<project-name>
-- the github project is named <**project-name**>
-- the main project branch is <**master**>
-- you have coverage.io account https://app.codecov.io/gh/<username>/<project-name>
-
-> **NOTE**: Please change **project-name**, **username** and **master** according to your project.
-
-### Install setuptools-github
-
-Install the package with:
-```bash
-pip install setuptools-github
- or
-conda install -c conda-forge setuptools-github
-```
-
-### Add secrets
-
-Github stores secrets for the <**project-name**> repository under:
-
-https://github.com/<username>/<project-name>/settings/secrets/actions
-
-These are the needed secrets for the PyPI index and codecov services:
-- TWINE_PASSWORD
-- TWINE_USERNAME
-- CODECOV_TOKEN
-
-## Project setup
-
-### Layout
+aimed at delivering packages into [PyPI](https://pypi.org) hosted at
+[Github](https://www.gitgub.com). 
 We assume this layout:
 ```python
   project-name/
-  ├── .github
-  │   └── workflows
-  │       ├── beta.yml
-  │       ├── master.yml
-  │       └── tags.yml
+  ├── setup.py
   ├── pyproject.toml
+  ├── .github
+  │   └── workflows           <- workflow files for
+  │       ├── beta.yml             * beta/N.M.O branches
+  │       ├── master.yml           * master branch
+  │       └── tags.yml             * release/N.M.O tags
   ├── src
   │   └── project_name        <- project name
   │       └── __init__.py     <- initfile
@@ -82,41 +34,60 @@ We assume this layout:
       └── requirements.txt    <- requirement file for tests
 ```
 
-- it is rooted under <**project-name**>/**src** directory
-- the python package is **project_name**
-- an **initfile** is stored under **project-name**/**src**/**project_name**/__init__.py
-- **tests** are stored under **project-name**/**tests**
-- a **requirements.txt* file for tests is under **project-name**/**tests**/requirements.txt
+> **NOTE** for a pyproject.toml / hatch enabled version of this, please use
+> [hatch-ci plugin](https://pypi.org/project/hatch-ci)
 
-> **NOTE**: You need to change these values to match your project
 
-### Setup the initfile
+#### install the package
+```bash
+pip install setuptools-github
+ or
+conda install -c conda-forge setuptools-github
+```
 
+#### put the initial version info in the initfile
 Create a new `src/project_name/__init__.py` file to store the package information:
 ```
 __version__ = "N.M.O"  # replace N, M and O with numerical values (eg. 0.0.0)
 __hash__ = ""  # leave this empty
 ```
 
-Fix the setup.py file:
+#### Fix the setup.py file
 ```
 from setuptools_github import tools
-initfile = pathlib.Path(__file__).parent / "project_name/__init__.py"
+
 setup(
   name="project-name",
   version=tools.update_version(initfile, os.getenv("GITHUB_DUMP")),
   ...
 ```
-Copy over the github workflow files:
+> **NOTE**: there's an advanced function `process` that can update 
+> and process files like the readmes [setup.py](https://raw.githubusercontent.com/cav71/setuptools-github/master/setup.py)
+
+#### Add the github workflow files
 - [github/workflows/master.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/master.yml)
 - [github/workflows/beta.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/beta.yml)
 - [github/workflows/tags.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/tags.yml)
 
-Most likely you might need to change `tests/requirements.txt` file.
+> **NOTE**: Most likely you might need to change `tests/requirements.txt` file.
 
+#### Add secrets
+In order to publish to codecov the coveragen info and to PyPI the wheels,
+you need to set the github secrets under:
+
+https://github.com/<username>/<project-name>/settings/secrets/actions
+
+These are the needed secrets for the PyPI index and codecov services:
+- TWINE_PASSWORD
+- TWINE_USERNAME
+- CODECOV_TOKEN
+
+---
 THAT IS ALL! Now when commit to the master branch, this will trigger the 
 github action to run tests and quality checks on the code 
-(see the Rationale section below).
+---
+
+## Working with branches
 
 ### Working with the master branch
 
@@ -138,7 +109,7 @@ or
 setuptools-github make-beta src/project_name/__init__.py
 ```
 
-Every commit on **beta/N.M.O** branch ASSUMING [Secrets](#add-secrets) have been set
+Every commit on **beta/N.M.O** branch if [Secrets](#add-secrets) have been set
 properly:
 - Runs mypy on src/
 - Runs ruff on src/
