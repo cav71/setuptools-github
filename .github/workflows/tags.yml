@@ -5,6 +5,10 @@ on:
     tags:
       - release/*
 
+env:
+  PACKAGE: setuptools_github
+  XTARGET: '3.11'
+
 jobs:
   build:
     strategy:
@@ -44,7 +48,7 @@ jobs:
           OUTDIR: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
         run: |
           py.test \
-              --cov=setuptools_github \
+              --cov=${{ env.PACKAGE }} \
               --cov-report=html:$OUTDIR/coverage --cov-report=xml:$OUTDIR/coverage.xml \
               --junitxml=$OUTDIR/junit/junit.xml --html=$OUTDIR/junit/junit.html --self-contained-html \
             tests
@@ -52,7 +56,7 @@ jobs:
 
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v3
-        if: ${{ matrix.python-version == '3.11' }}
+        if: ${{ matrix.python-version == env.XTARGET }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
