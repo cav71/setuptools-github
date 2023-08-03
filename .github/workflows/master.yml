@@ -64,12 +64,15 @@ jobs:
               --cov-report=html:$OUTDIR/coverage --cov-report=xml:$OUTDIR/coverage.xml \
               --junitxml=$OUTDIR/junit/junit.xml --html=$OUTDIR/junit/junit.html --self-contained-html \
             tests
+          touch build/.keepme
 
       - name: Artifacts uploads
         uses: actions/upload-artifact@v3
         with:
           name: pytest-results-${{ matrix.python-version }}-${{ matrix.os }}
-          path: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
+          path: |
+            build/qa-${{ matrix.python-version }}-${{ matrix.os}}
+            build/.keepme
         # Use always() to always run this step to publish test results when there are test failures
         if: always()
 
