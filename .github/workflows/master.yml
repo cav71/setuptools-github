@@ -25,6 +25,7 @@ jobs:
           echo "github env:"
           echo "$GITHUB_DUMP"
           echo "BOOO ${{matrix.os}}" > blah-${{ matrix.python-version }}-${{ matrix.os}}.txt
+          [ "${{ matrix.python-version }}-${{ matrix.os}}" == "ubuntu-latest-3.11" ] && exit 1 || exit 0
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3
         with:
