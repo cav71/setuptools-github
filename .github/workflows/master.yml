@@ -27,6 +27,11 @@ jobs:
           echo "BOOO ${{matrix.os}}" > blah.txt
 
   publish:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11",]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Upload PyPI
         run: |
