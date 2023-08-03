@@ -7,30 +7,40 @@ from setuptools_github import tools  # noqa E402
 from setuptools import setup, find_namespace_packages  # noqa E402
 
 
-fixers = {
-    # for the github actions
-    "/actions/workflows/master.yml/badge.svg": "/actions/workflows/{{ ctx.workflow }}.yml/badge.svg",  # noqa: E501
-    "/actions/workflows/master.yml": "/actions/runs/{{ ctx.runid }}",
-    # for the codecov part
-    "/tree/master/graph/badge.svg?token=SIUMZ7MT5T": "/tree/{{ ctx.branch|urlquote }}/graph/badge.svg?token=SIUMZ7MT5T",  # noqa: E501
-    "/tree/master": "/tree/{{ ctx.branch|urlquote }}",
-}
-initfile = pathlib.Path(__file__).parent / "src/setuptools_github/__init__.py"
-readme = pathlib.Path(__file__).parent / "README.md"
-version = tools.process(initfile, os.getenv("GITHUB_DUMP"), readme, fixers=fixers)[
-    "version"
-]
+PROOT = pathlib.Path(__file__).parent
 
-packages = find_namespace_packages(where="src")
+
+GDATA = tools.process(
+    # initfile containing the __version__ / __hash__ module variables
+    # (they will be update during build)
+    initfile=PROOT / "src/setuptools_github/__init__.py",
+    # this is the github environ (the output of ${{ toJson(github) }})
+    # (see .github/workflows/master.yml)
+    github_dump=os.getenv("GITHUB_DUMP"),
+    # a list of files, processed using jinja2
+    paths=[
+        PROOT / "README.md",
+    ],
+    # fixed simply text replace {old: new} in every paths content
+    fixers={
+        # for the github actions
+        "/actions/workflows/master.yml/badge.svg": "/actions/workflows/{{ ctx.workflow }}.yml/badge.svg",  # noqa: E501
+        "/actions/workflows/master.yml": "/actions/runs/{{ ctx.runid }}",
+        # for the codecov part
+        "/tree/master/graph/badge.svg?token=SIUMZ7MT5T": "/tree/{{ ctx.branch|urlquote }}/graph/badge.svg?token=SIUMZ7MT5T",  # noqa: E501
+        "/tree/master": "/tree/{{ ctx.branch|urlquote }}",
+    },
+)
+
 
 setup(
     name="setuptools-github",
-    version=version,
+    version=GDATA["version"],
     url="https://github.com/cav71/setuptools-github",
-    packages=packages,
+    packages=find_namespace_packages(where="src"),
     package_dir={"setuptools_github": "src/setuptools_github"},
     description="supports github releases",
-    long_description=readme.read_text(),
+    long_description=(PROOT / "README.md").read_text(),
     long_description_content_type="text/markdown",
     install_requires=[
         "setuptools",
