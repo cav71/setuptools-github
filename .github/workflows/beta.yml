@@ -133,12 +133,6 @@ jobs:
           verbose: true
           override_branch: ${{ github.ref_name }}
 
-      - name: Build wheel packages
-        env:
-          GITHUB_DUMP: ${{ toJson(github) }}
-        run: |
-          python -m build
-
       - name: Publish packages to pypi (beta)
         shell: bash
         env:

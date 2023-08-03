@@ -28,7 +28,7 @@ We assume this layout:
   │       └── tags.yml             * release/N.M.O tags
   ├── src
   │   └── project_name        <- project name
-  │       └── __init__.py     <- initfile
+  │       └── __init__.py     <- version_file
   └── tests                   <- tests (pytest)
       ├── conftest.py
       └── requirements.txt    <- requirement file for tests
@@ -45,7 +45,7 @@ pip install setuptools-github
 conda install -c conda-forge setuptools-github
 ```
 
-#### put the initial version info in the initfile
+#### put the initial version info in the version_file
 Create a new `src/project_name/__init__.py` file to store the package information:
 ```
 __version__ = "N.M.O"  # replace N, M and O with numerical values (eg. 0.0.0)
@@ -58,7 +58,7 @@ from setuptools_github import tools
 
 setup(
   name="project-name",
-  version=tools.update_version(initfile, os.getenv("GITHUB_DUMP")),
+  version=tools.update_version(version_file, os.getenv("GITHUB_DUMP")),
   ...
 ```
 > **NOTE**: there's an advanced function `tools.process` that can update 
@@ -137,7 +137,7 @@ or
 setuptools-github make-beta micro src/project_name/__init__.py
 ```
 This will tag the HEAD on **beta/N.M.O** branch 
-with the **release/N.M.O** tag and increment the **initfile** with the
+with the **release/N.M.O** tag and increment the **version_file** with the
 next version N.M.O+1 (using micro).
 
 Once done, you'll need to push it the tag.
