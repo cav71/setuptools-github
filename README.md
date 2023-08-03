@@ -69,7 +69,10 @@ setup(
 - [github/workflows/beta.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/beta.yml)
 - [github/workflows/tags.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/tags.yml)
 
-> **NOTE**: Most likely you might need to change `tests/requirements.txt` file.
+> **NOTE**: Most likely you might need to change:
+> - the `tests/requirements.txt` file
+> - the envs variables at the beging of `master.yml` and `beta.yml`
+
 
 #### Add secrets
 In order to publish to codecov the coveragen info and to PyPI the wheels,
