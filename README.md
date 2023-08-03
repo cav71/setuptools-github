@@ -14,7 +14,7 @@
 
 ## Quick start
 setuptools-github helps to implement a simple project life cycle
-aimed at delivering packages into [PyPI](https://pypi.org) hosted at
+aimed at delivering packages into [PyPI](https://pypi.org) from a hosted project at
 [Github](https://www.gitgub.com). 
 We assume this layout:
 ```python
@@ -61,8 +61,8 @@ setup(
   version=tools.update_version(initfile, os.getenv("GITHUB_DUMP")),
   ...
 ```
-> **NOTE**: there's an advanced function `process` that can update 
-> and process files like the readmes [setup.py](https://raw.githubusercontent.com/cav71/setuptools-github/master/setup.py)
+> **NOTE**: there's an advanced function `tools.process` that can update 
+> and process files like the readmes (see an example in [setup.py](https://raw.githubusercontent.com/cav71/setuptools-github/master/setup.py))
 
 #### Add the github workflow files
 - [github/workflows/master.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/master.yml)
@@ -75,7 +75,7 @@ setup(
 In order to publish to codecov the coveragen info and to PyPI the wheels,
 you need to set the github secrets under:
 
-https://github.com/<username>/<project-name>/settings/secrets/actions
+https://github.com/<span style="color: red">username</span>/<span style="color: green">project-name</span>/settings/secrets/actions
 
 These are the needed secrets for the PyPI index and codecov services:
 - TWINE_PASSWORD
