@@ -67,7 +67,7 @@ jobs:
           touch build/.keepme
 
       - name: Build wheel packages
-        if: ${{ ! contains(matrix.os, "windows") }}
+        if: ${{ ! contains(matrix.os, 'windows') }}
         env:
           GITHUB_DUMP: ${{ toJson(github) }}
         run: |
