@@ -69,7 +69,7 @@ jobs:
       - name: Artifacts uploads
         uses: actions/upload-artifact@v3
         with:
-          name: pytest-results-${{ matrix.python-version }}-${{ matrix.os }}
+          name: qa-results-${{ matrix.python-version }}-${{ matrix.os }}
           path: |
             build/qa-${{ matrix.python-version }}-${{ matrix.os}}
             build/.keepme
@@ -90,7 +90,7 @@ jobs:
       - name: Artifacts download
         uses: actions/download-artifact@v3
         with:
-          name: pytest-results-${{ matrix.python-version }}-${{ matrix.os }}
+          name: qa-results-${{ matrix.python-version }}-${{ matrix.os }}
 
       - name: DEBUG
         shell: bash
@@ -102,5 +102,5 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
-          files: pytest-results-${{ matrix.python-version }}-${{ matrix.os }}/coverage.xml
+          files: qa-${{ matrix.python-version }}-${{ matrix.os }}/coverage.xml
           verbose: true
