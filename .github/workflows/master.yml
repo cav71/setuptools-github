@@ -24,7 +24,12 @@ jobs:
         run: |
           echo "github env:"
           echo "$GITHUB_DUMP"
-          echo "BOOO ${{matrix.os}}" > blah.txt
+          echo "BOOO ${{matrix.os}}" > blah-${{ matrix.python-version }}-${{ matrix.os}}.txt
+      - name: Upload pytest test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: blah-${{ matrix.python-version }}-${{ matrix.os }}
+          path: blah-${{ matrix.python-version }}-${{ matrix.os }}.txt
 
   publish:
     strategy:
@@ -34,9 +39,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: build
     steps:
+      - name: Download math result for job 1
+        uses: actions/download-artifact@v3
+        with:
+          name: blah-${{ matrix.python-version }}-${{ matrix.os }}
       - name: Upload PyPI
         run: |
-          cat blah.txt
+          cat blah-${{ matrix.python-version }}-${{ matrix.os }}.txt
     
     
 #       - name: Set up Python interpreter [${{ matrix.python-version }}]
