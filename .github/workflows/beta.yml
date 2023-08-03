@@ -14,7 +14,8 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
       - name: Dump env
         shell: bash
@@ -29,21 +30,21 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
+      - name: Install dependencies from tests/requirements.txt
         shell: bash
         run: |
             python -m pip install --upgrade pip
             pip install setuptools build wheel twine
             pip install -r tests/requirements.txt
 
-      - name: Lint tests (flake8)
+      - name: Lint checks (ruff)
         shell: bash
         env:
           PYTHONPATH: src
         run: |
            ruff check .
 
-      - name: Static tests (mypy)
+      - name: Static checks (mypy)
         shell: bash
         env:
           PYTHONPATH: src
@@ -52,7 +53,7 @@ jobs:
           mypy src/setuptools_github \
             --no-incremental --xslt-html-report $OUTDIR/mypy
 
-      - name: Runtime tests (unitest, coverage etc.)
+      - name: Runtime checks (pytest, coverage etc.)
         shell: bash
         env:
           PYTHONPATH: src
@@ -63,24 +64,49 @@ jobs:
               --cov-report=html:$OUTDIR/coverage --cov-report=xml:$OUTDIR/coverage.xml \
               --junitxml=$OUTDIR/junit/junit.xml --html=$OUTDIR/junit/junit.html --self-contained-html \
             tests
+          touch build/.keepme
 
-      - name: Upload pytest test results
+      - name: Build wheel packages
+        env:
+          GITHUB_DUMP: ${{ toJson(github) }}
+        run: |
+          python -m build
+          mv dist build
+
+      - name: Artifacts uploads
         uses: actions/upload-artifact@v3
         with:
-          name: pytest-results-${{ matrix.python-version }}-${{ matrix.os }}
-          path: build/qa-${{ matrix.python-version }}-${{ matrix.os}}
+          name: qa-results-${{ matrix.python-version }}-${{ matrix.os }}
+          path: |
+            build/qa-${{ matrix.python-version }}-${{ matrix.os}}
+            build/dist
+            build/.keepme
         # Use always() to always run this step to publish test results when there are test failures
         if: always()
 
+  publish:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11",]
+    runs-on: ${{ matrix.os }}
+    needs: build
+    steps:
+      - name: Artifacts download
+        uses: actions/download-artifact@v3
+        with:
+          name: qa-results-${{ matrix.python-version }}-${{ matrix.os }}
+
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v3
+        if: ${{ matrix.python-version == '3.11' }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
-          files: build/qa-${{ matrix.python-version }}-${{ matrix.os}}/coverage.xml
+          files: qa-${{ matrix.python-version }}-${{ matrix.os }}/coverage.xml
           verbose: true
 
-      - name: Build wheel package
+      - name: "Upload wheel package"
         env:
           PYTHONPATH: .
           GITHUB_DUMP: ${{ toJson(github) }}

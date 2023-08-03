@@ -66,12 +66,20 @@ jobs:
             tests
           touch build/.keepme
 
+      - name: Build wheel packages
+        env:
+          GITHUB_DUMP: ${{ toJson(github) }}
+        run: |
+          python -m build
+          mv dist build
+
       - name: Artifacts uploads
         uses: actions/upload-artifact@v3
         with:
           name: qa-results-${{ matrix.python-version }}-${{ matrix.os }}
           path: |
             build/qa-${{ matrix.python-version }}-${{ matrix.os}}
+            build/dist
             build/.keepme
         # Use always() to always run this step to publish test results when there are test failures
         if: always()
@@ -88,10 +96,6 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: qa-results-${{ matrix.python-version }}-${{ matrix.os }}
-
-      - name: DEBUG
-        shell: bash
-        run: find .
 
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v3
