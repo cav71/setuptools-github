@@ -95,5 +95,5 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
-          files: build/qa-${{ matrix.python-version }}-${{ matrix.os}}/coverage.xml
+          files: pytest-results-${{ matrix.python-version }}-${{ matrix.os }}/coverage.xml
           verbose: true
