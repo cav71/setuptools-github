@@ -24,7 +24,15 @@ jobs:
         run: |
           echo "github env:"
           echo "$GITHUB_DUMP"
+          echo "BOOO ${{matrix.os}}" > blah.txt
 
+  publish:
+    steps:
+      - name: Upload PyPI
+        run: |
+          cat blah.txt
+    
+    
 #       - name: Set up Python interpreter [${{ matrix.python-version }}]
 #         uses: actions/setup-python@v4
 #         with:
