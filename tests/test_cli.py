@@ -14,7 +14,9 @@ def test_exception():
           """,
         hint="create a git branch",
     )
-    assert str(obj) == """\
+    assert (
+        str(obj)
+        == """\
 this is a short one-liner
 reason:
 
@@ -25,6 +27,7 @@ reason:
 hint:
   create a git branch\
 """
+    )
 
 
 def test_docstring():
@@ -42,13 +45,17 @@ def test_cli_call_help():
         pass
 
     with contextlib.ExitStack() as stack:
+
         def xxx(self, parser, namespace, values, option_string=None):
             found = (
-                parser.
-                format_help().strip().replace(" py.test ", " pytest ")
+                parser.format_help()
+                .strip()
+                .replace(" py.test ", " pytest ")
                 .replace("optional arguments:", "options:")
             )
-            assert found == """
+            assert (
+                found
+                == """
 usage: pytest [-h] [-n] [-v]
 
 options:
@@ -56,6 +63,7 @@ options:
   -n, --dry-run
   -v, --verbose
 """.strip()
+            )
+
         stack.enter_context(mock.patch("argparse._HelpAction.__call__", new=xxx))
         hello(["--help"])
-
