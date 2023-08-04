@@ -97,6 +97,16 @@ def lstrip(txt: str, left: str) -> str:
     return txt[len(left) :] if txt.startswith(left) else txt
 
 
+def apply_fixers(txt: str, fixers: dict[str, str] | None = None) -> str:
+    result = txt
+    for src, dst in (fixers or {}).items():
+        if src.startswith("re:"):
+            result = re.sub(src[3:], dst, result)
+        else:
+            result = result.replace(src, dst)
+    return result
+
+
 def get_module_var(
     path: Path | str, var: str = "__version__", abort=True
 ) -> str | None:

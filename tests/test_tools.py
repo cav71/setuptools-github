@@ -1,3 +1,5 @@
+# ruff: noqa: E501
+
 import pytest
 from setuptools_github import tools
 
@@ -133,6 +135,44 @@ def test_list_of_paths():
 
 def test_lstrip():
     assert tools.lstrip("/a/b/c/d/e", "/a/b") == "/c/d/e"
+
+
+def test_apply_fixers():
+    fixers = {
+        "abc": "def",
+    }
+    assert tools.apply_fixers("abcdef abc123", fixers) == "defdef def123"
+    fixers = {
+        "re:([ab])cde": "x\\1",
+    }
+    assert tools.apply_fixers("acde bcde123", fixers) == "xa xb123"
+
+    fixers = {
+        # for the github actions
+        "re:(https://github.com/.+/actions/workflows/)(master)(.yml/badge.svg)": "\\1{{ ctx.workflow }}\\3",
+        "re:(https://github.com/.+/actions)/(workflows/)(master.yml)(?!/)": "\\1/runs/{{ ctx.runid }}",
+        # for the codecov part
+        "re:(https://codecov.io/gh/.+/tree)/master(/graph/badge.svg[?]token=.+)": "\\1/{{ ctx.branch|urlquote }}\\2",
+        "re:(https://codecov.io/gh/.+/tree)/master(?!/)": "\\1/{{ ctx.branch|urlquote }}",
+    }
+
+    txt = "https://github.com/cav71/setuptools-github/actions/workflows/master.yml/badge.svg"
+    expected = "https://github.com/cav71/setuptools-github/actions/workflows/{{ ctx.workflow }}.yml/badge.svg"
+    assert tools.apply_fixers(txt, fixers) == expected
+
+    txt = "https://github.com/cav71/setuptools-github/actions/workflows/master.yml"
+    expected = "https://github.com/cav71/setuptools-github/actions/runs/{{ ctx.runid }}"
+    assert tools.apply_fixers(txt, fixers) == expected
+
+    txt = "https://codecov.io/gh/cav71/setuptools-github/tree/master/graph/badge.svg?token=RANDOM123"
+    expected = "https://codecov.io/gh/cav71/setuptools-github/tree/{{ ctx.branch|urlquote }}/graph/badge.svg?token=RANDOM123"
+    assert tools.apply_fixers(txt, fixers) == expected
+
+    txt = "https://codecov.io/gh/cav71/setuptools-github/tree/master"
+    expected = (
+        "https://codecov.io/gh/cav71/setuptools-github/tree/{{ ctx.branch|urlquote }}"
+    )
+    assert tools.apply_fixers(txt, fixers) == expected
 
 
 def test_get_module_var(tmp_path):
@@ -342,11 +382,13 @@ def test_update_version_release(git_project_factory):
 
 def test_process(git_project_factory):
     def write_tfile(tfile):
-        tfile.write_text("""
+        tfile.write_text(
+            """
 {% for k, v in ctx.items() | sort -%}
 Key[{{k}}] = {{v}}
 {% endfor %}
-""")
+"""
+        )
         return tfile
 
     repo = git_project_factory().create("1.2.3")
@@ -358,7 +400,9 @@ Key[{{k}}] = {{v}}
 
     assert data["hash"][-1] != "*"
 
-    assert tfile.read_text() == f"""
+    assert (
+        tfile.read_text()
+        == f"""
 Key[branch] = master
 Key[build] = 0
 Key[current] = 1.2.3
@@ -367,6 +411,7 @@ Key[runid] = 0
 Key[version] = 1.2.3
 Key[workflow] = master
 """
+    )
 
     # clean and switch to new branch
     repo.revert(repo.initfile)
@@ -376,7 +421,9 @@ Key[workflow] = master
     data = tools.process(repo.initfile, None, tfile)
     assert data["hash"][-1] != "*"
 
-    assert tfile.read_text() == f"""
+    assert (
+        tfile.read_text()
+        == f"""
 Key[branch] = beta/1.2.3
 Key[build] = 0
 Key[current] = 1.2.3
@@ -385,3 +432,4 @@ Key[runid] = 0
 Key[version] = 1.2.3b0
 Key[workflow] = beta
 """
+    )
