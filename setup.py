@@ -21,14 +21,34 @@ GDATA = tools.process(
     paths=[
         PROOT / "README.md",
     ],
-    # fixed simply text replace {old: new} in every paths content
+    # fixed simply text replace {old: new} in every paths file
+    # once the replacement happens, the paths file get jinja2
+    # processed with a ctx context having:
+    #   ctx.__dict__ == {
+    #       'branch': 'master',  <- current branch
+    #       'build': 123,        <- build no. (github)
+    #       'current': '0.3.7',  <- current version
+    #       'hash': '13526de2b08fe3684cda35adf219f855cb4deadb',  <- commit hash
+    #       'runid': 456,        <- workflow uid run (github)
+    #       'version': '0.3.7',  <- package version (eg. 0.3.7b<build>
+    #                                                for beta/0.3.7 branch)
+    #       'workflow': 'master' <- workflow name (github)
+    #   }
     fixers={
         # for the github actions
-        "/actions/workflows/master.yml/badge.svg": "/actions/workflows/{{ ctx.workflow }}.yml/badge.svg",  # noqa: E501
-        "/actions/workflows/master.yml": "/actions/runs/{{ ctx.runid }}",
+        "re:(https://github.com/.+/actions/workflows/)(master)(.yml/badge.svg)": (
+            "\\1{{ ctx.workflow }}\\3"
+        ),
+        "re:(https://github.com/.+/actions)/(workflows/)(master.yml)(?!/)": (
+            "\\1/runs/{{ ctx.runid }}"
+        ),
         # for the codecov part
-        "/tree/master/graph/badge.svg?token=SIUMZ7MT5T": "/tree/{{ ctx.branch|urlquote }}/graph/badge.svg?token=SIUMZ7MT5T",  # noqa: E501
-        "/tree/master": "/tree/{{ ctx.branch|urlquote }}",
+        "re:(https://codecov.io/gh/.+/tree)/master(/graph/badge.svg[?]token=.+)": (
+            "\\1/{{ ctx.branch|urlquote }}\\2"
+        ),
+        "re:(https://codecov.io/gh/.+/tree)/master(?!/)": (
+            "\\1/{{ ctx.branch|urlquote }}"
+        ),
     },
 )
 
