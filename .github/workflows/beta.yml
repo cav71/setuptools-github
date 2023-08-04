@@ -67,7 +67,6 @@ jobs:
               --cov-report=html:$OUTDIR/coverage --cov-report=xml:$OUTDIR/coverage.xml \
               --junitxml=$OUTDIR/junit/junit.xml --html=$OUTDIR/junit/junit.html --self-contained-html \
             tests
-          touch build/.keepme
 
       - name: Build wheel packages
         if: ${{ ! contains(matrix.os, 'windows') }}
@@ -75,7 +74,9 @@ jobs:
           GITHUB_DUMP: ${{ toJson(github) }}
         run: |
           python -m build
-          mv dist build
+
+      - name: Small fix
+        run: touch .keepme
 
       - name: Artifacts uploads
         uses: actions/upload-artifact@v3
@@ -83,8 +84,8 @@ jobs:
           name: qa-results-${{ matrix.python-version }}-${{ matrix.os }}
           path: |
             build/qa-${{ matrix.python-version }}-${{ matrix.os}}
-            build/dist
-            build/.keepme
+            dist
+            .keepme
         # Use always() to always run this step to publish test results when there are test failures
         if: always()
 
@@ -129,7 +130,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
-          files: qa-${{ matrix.python-version }}-${{ matrix.os }}/coverage.xml
+          files: build/qa-${{ matrix.python-version }}-${{ matrix.os }}/coverage.xml
           verbose: true
           override_branch: ${{ github.ref_name }}
 
