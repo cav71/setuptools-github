@@ -101,6 +101,12 @@ jobs:
         with:
           name: qa-results-${{ matrix.python-version }}-${{ matrix.os }}
 
+      - name: "Fix codecov paths"
+        if: ${{ matrix.python-version == env.XTARGET }}
+        run: |
+          mkdir build
+          mv qa-${{ matrix.python-version }}-${{ matrix.os }} build
+
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v3
         if: ${{ matrix.python-version == env.XTARGET }}
