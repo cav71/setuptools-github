@@ -6,8 +6,9 @@ tests:
 	py.test -vvs tests
 
 
-build:
+branch:
 	rm -rf dist
+	git checkout src/setuptools_github/__init__.py
 	GITHUB_DUMP='\
     {\
        "ref": "refs/heads/$(shell git branch --show-current)", \
@@ -21,4 +22,4 @@ clean:
 	-git checkout src/setuptools_github/__init__.py
 	rm -rf dist setuptools_github.egg-info
 
-.PHONY: tests
+.PHONY: tests branch

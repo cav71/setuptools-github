@@ -383,9 +383,7 @@ def process(
     env = Environment(autoescape=True)
     env.filters["urlquote"] = partial(quote, safe="")
     for path in list_of_paths(paths):
-        txt = path.read_text()
-        for old, new in (fixers or {}).items():
-            txt = txt.replace(old, new, 1)
+        txt = apply_fixers(path.read_text(), fixers)
         tmpl = env.from_string(txt)
         path.write_text(tmpl.render(ctx=Context(**data)))
     return data
