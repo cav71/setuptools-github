@@ -7,12 +7,13 @@ tests:
 
 
 build:
+	rm -rf dist
 	GITHUB_DUMP='\
     {\
        "ref": "refs/heads/$(shell git branch --show-current)", \
        "sha": "$(shell git rev-parse HEAD)", \
-       "run_number": 123, \
-       "run_id": 456 \
+       "run_number": 92, \
+       "run_id": 5767031699 \
     }\
     ' python -m build
 
