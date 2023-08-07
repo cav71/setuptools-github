@@ -54,7 +54,7 @@ branch:
     ' python -m build
 
 clean:
-	-git checkout src/setuptools_github/__init__.py
+	-git checkout src/setuptools_github/__init__.py README.md
 	rm -rf dist setuptools_github.egg-info
 
 .PHONY: tests branch
