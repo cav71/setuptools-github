@@ -42,7 +42,7 @@ build:
 
 
 branch:
-	rm -rf dist
+	rm -rf dist src/setuptools_github/_build.py
 	git checkout src/setuptools_github/__init__.py
 	GITHUB_DUMP='\
     {\
