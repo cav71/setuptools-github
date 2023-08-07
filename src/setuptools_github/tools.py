@@ -301,7 +301,8 @@ def get_data(
     if github_dump:
         gdata = json.loads(github_dump) if isinstance(github_dump, str) else github_dump
     elif record_path and record_path.exists():
-        gdata = loadmod(record_path).data
+        mod = loadmod(record_path)
+        gdata = {k: getattr(mod, k) for k in dir(mod) if not k.startswith("_")}
     elif repo:
         gdata = {
             "ref": repo.head.name,
