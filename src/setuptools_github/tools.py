@@ -97,6 +97,18 @@ def lstrip(txt: str, left: str) -> str:
     return txt[len(left) :] if txt.startswith(left) else txt
 
 
+def loadmod(path: Path) -> Any:
+    from importlib.util import module_from_spec, spec_from_file_location
+
+    module = None
+    spec = spec_from_file_location(Path(path).name, Path(path))
+    if spec:
+        module = module_from_spec(spec)
+    if module and spec and spec.loader:
+        spec.loader.exec_module(module)
+    return module
+
+
 def apply_fixers(txt: str, fixers: dict[str, str] | None = None) -> str:
     result = txt
     for src, dst in (fixers or {}).items():
@@ -252,7 +264,7 @@ def get_data(
     github_dump: str | None = None,
     record_path: Path | None = None,
     abort: bool = True,
-) -> dict[str, str | None]:
+) -> tuple[dict[str, str | None], dict[str, Any]]:
     """extracts version information from github_dump and updates version_file in-place
 
     Args:
@@ -283,13 +295,13 @@ def get_data(
                 f"cannot figure out settings (no repo in {path}, "
                 f"a GITHUB_DUMP or a build.json file)"
             )
-        return result
+        return result, {}
 
     dirty = False
     if github_dump:
         gdata = json.loads(github_dump) if isinstance(github_dump, str) else github_dump
     elif record_path and record_path.exists():
-        gdata = json.loads(record_path.read_text())
+        gdata = loadmod(record_path).data
     elif repo:
         gdata = {
             "ref": repo.head.name,
@@ -309,7 +321,6 @@ def get_data(
     result["build"] = gdata["run_number"]
     result["runid"] = gdata["run_id"]
     result["workflow"] = result["branch"]
-    result["gdata"] = gdata
 
     current = result["current"]
     if match := expr.search(gdata["ref"]):
@@ -328,7 +339,7 @@ def get_data(
             result["workflow"] = "beta"
         else:
             result["workflow"] = "tags"
-    return result
+    return result, gdata
 
 
 def update_version(
@@ -344,7 +355,7 @@ def update_version(
         str: the new version for the package
     """
 
-    data = get_data(version_file, github_dump, abort=abort)
+    data = get_data(version_file, github_dump, abort=abort)[0]
     set_module_var(version_file, "__version__", data["version"])
     set_module_var(version_file, "__hash__", data["hash"])
     return data["version"]
@@ -393,8 +404,7 @@ def process(
                 yield (name, value)
 
     record_path = (Path(version_file).parent / record).absolute() if record else None
-    data = get_data(version_file, github_dump, record_path, abort)
-    gdata = data.pop("gdata") if "gdata" in data else None
+    data, gdata = get_data(version_file, github_dump, record_path, abort)
     set_module_var(version_file, "__version__", data["version"])
     set_module_var(version_file, "__hash__", data["hash"])
 
@@ -407,6 +417,10 @@ def process(
 
     if record_path:
         record_path.parent.mkdir(parents=True, exist_ok=True)
-        record_path.write_text(json.dumps(gdata, indent=2, sort_keys=True))
+        with record_path.open("w") as fp:
+            print("# autogenerate build file", file=fp)
+            for key, value in sorted((gdata or {}).items()):
+                value = f"'{value}'" if isinstance(value, str) else value
+                print(f"{key} = {value}", file=fp)
 
     return data
