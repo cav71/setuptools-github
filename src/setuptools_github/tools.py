@@ -270,7 +270,7 @@ def get_data(
     Args:
         version_file (str, Path): path to a file  with a __version__ variable
         github_dump (str): the os.getenv("GITHUB_DUMP") value
-        record: pull data from a build.json file
+        record: pull data from a _build.py file
 
     Returns:
         dict[str,str|None]: a dict with the current config
@@ -293,7 +293,7 @@ def get_data(
         if abort:
             raise scm.InvalidGitRepoError(
                 f"cannot figure out settings (no repo in {path}, "
-                f"a GITHUB_DUMP or a build.json file)"
+                f"a GITHUB_DUMP or a _build.py file)"
             )
         return result, {}
 
@@ -366,7 +366,7 @@ def process(
     github_dump: str | None = None,
     paths: str | Path | list[str | Path] | None = None,
     fixers: dict[str, str] | None = None,
-    record: str | Path = "build.json",
+    record: str | Path = "_build.py",
     abort: bool = True,
 ) -> dict[str, str | None]:
     """get version from github_dump and updates version_file/paths
@@ -376,7 +376,7 @@ def process(
         github_dump (str): the os.getenv("GITHUB_DUMP") value
         paths (str, Path): path(s) to files jinja2 processeable
         fixers (dict[str,str]): fixer dictionary
-        record: set to True will generate a build.json sibling of version_file
+        record: set to True will generate a _build.py sibling of version_file
 
     Returns:
         str: the new version for the package
