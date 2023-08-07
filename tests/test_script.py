@@ -59,6 +59,7 @@ def test_main_make_beta(git_project_factory):
     )
     script.main.__wrapped__(options)
     assert set(repo.branches.local) == {"master", "beta/0.0.0"}
+    repo(["checkout", "master"])
 
     try:
         script.main.__wrapped__(options)
