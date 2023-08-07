@@ -98,7 +98,6 @@ def main(options) -> None:
             options.error(f"branch '{branch}' already present")
         log.info("creating branch '%s'", f"/beta/{version}")
         options.repo.branch(f"beta/{version}", master)
-        options.repo(["checkout", master])
         print(  # noqa: T201
             tools.indent(
                 f"""
