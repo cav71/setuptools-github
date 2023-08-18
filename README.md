@@ -12,17 +12,37 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 
-## Quick start
-
-- [install the package](#install)
-- [setup the __init__.py file](#initfile)
-
-setuptools-github helps to implement a simple project life cycle
-aimed at delivering packages into [PyPI](https://pypi.org) from a hosted project at
+## Introduction
+setuptools-github helps to setup a simple project life cycle
+where the target is delivering packages into [PyPI](https://pypi.org) from a hosted project at
 [Github](https://www.gitgub.com). 
 
+The idea is rather simple (and detailed in [here](https://cavallinux.org/projects/branched-based-deployment/index.html)):
+- commits on a master branch will trigger code checks (static checks, tests etc.)
+- commits on a `beta/N.M.O` branch will do all the previous checks + publishing a beta package N.M.Ob**XXX** (**XXX** is an increasing number) on [PyPI](https://pypi.org)
+- tagging on a `beta/N.M.O` branch will publish an official package on [PyPI](https://pypi.org) for N.M.O 
+
+See [here](https://pypi.org/project/setuptools-github/#history) for what the life cycle implementation looks like.
+
+### Index
+
+1. [Setup the project](#quickstart)
+    - [install the package](#install)
+    - [setup the __init__.py file](#initfile)
+    - [fix the setup.py file](#setuppy)
+2. [Setup the workflow files](#worflows)
+    - [add the files](#workflows-add-files)
+    - [setup the secrets](#workflows-setup-secrets)
+3. [Working with branches](#branches)
+    - [commit on the master branch](#master-branch)
+    - [commit on a beta/N.M.O branch](#beta-branch)
+    - [releasing on tags](#release-tag)
+
+
+### Setup the project <a name="quickstart"/>
+
 The project should conform to this layout style:
-```python
+```text
   project-name/
   ├── setup.py
   ├── pyproject.toml
@@ -50,14 +70,15 @@ pip install setuptools-github
 conda install -c conda-forge setuptools-github
 ```
 
-#### put the initial version info in the version_file <a name="initfile"/>
-Create a new `src/project_name/__init__.py` file to store the package information:
+#### setup up the initial version_file <a name="initfile"/>
+Create a new version_file `src/project_name/__init__.py` file to store the package information:
 ```
 __version__ = "N.M.O"  # replace N, M and O with numerical values (eg. 0.0.0)
 __hash__ = ""  # leave this empty
 ```
 
-#### Fix the setup.py file
+#### Fix the setup.py file <a name="setuppy"/>
+Include in the `setup.py` file:
 ```
 from setuptools_github import tools
 
@@ -69,17 +90,26 @@ setup(
 > **NOTE**: there's an annotated `tools.process` example in [setup.py](https://raw.githubusercontent.com/cav71/setuptools-github/master/setup.py)
 > with support for keyword substitution on text files.
 
-#### Add the github workflow files
+### Setup the workflow files <a name="worflows"/>
+These are the steps to automate the build process on github.
+
+#### add workflow files <a name="workflows-add-files"/>
+Add these workflows file to your project:
+
 - [github/workflows/master.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/master.yml)
 - [github/workflows/beta.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/beta.yml)
 - [github/workflows/tags.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/tags.yml)
+
+These will trigger a build on:
+- a master branch commit [see](#master-branch)
+- a beta/N.M.O commit [see](#beta-branch)
+- a release on tag release/N.M.O [see](#tag-branch)
 
 > **NOTE**: Most likely you might need to change:
 > - the `tests/requirements.txt` file
 > - the envs variables at the beging of `master.yml` and `beta.yml`
 
-
-#### Add secrets
+#### Setup github secrets <a name="workflows-setup-secrets"/>
 In order to publish to codecov the coveragen info and to PyPI the wheels,
 you need to set the github secrets under:
 
@@ -95,9 +125,9 @@ THAT IS ALL! Now when commit to the master branch, this will trigger the
 github action to run tests and quality checks on the code 
 ---
 
-## Working with branches
+### Working with branches  <a name="branches"/>
 
-### Working with the master branch
+#### commit on the master branch <a name="master-branch"/>
 
 Every time there's a commit on the **master** branch, this will trigger
 the workflow under ./github/workflows/master.yml:
@@ -107,7 +137,7 @@ the workflow under ./github/workflows/master.yml:
 
 On completion static and dynamic tests are supported.
 
-### Setup the beta/N.M.O branch
+#### commit on a beta/N.M.O branch <a name="beta-branch"/>
 
 In order to prepare for a release a new **beta/N.M.O** branch should be created:
 ```python
@@ -132,7 +162,7 @@ properly:
 > This means **project-N.M.O.bX** < **project-N.M.O** allowing 
 > the correct package ordering.
 
-### Release the project N.M.O
+#### releasing on tags <a name="tag-branch"/>
 To release an official package for **project-N.M.O** from
 the **beta/N.M.O** branch:
 ```python
