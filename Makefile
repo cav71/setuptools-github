@@ -55,6 +55,6 @@ branch:
 
 clean:
 	-git checkout src/setuptools_github/__init__.py README.md
-	rm -rf dist setuptools_github.egg-info src/setuptools_github/build.json
+	rm -rf dist setuptools_github.egg-info src/setuptools_github/_build.py
 
 .PHONY: tests branch
