@@ -274,11 +274,13 @@ def get_data(
 
     Returns:
         dict[str,str|None]: a dict with the current config
+        dict[str,str|None]: a dict with the github dump data
     """
     result = {
         "version": get_module_var(version_file, "__version__"),
         "current": get_module_var(version_file, "__version__"),
         "branch": None,
+        "ref": None,
         "hash": None,
         "build": None,
         "runid": None,
@@ -302,7 +304,12 @@ def get_data(
         gdata = json.loads(github_dump) if isinstance(github_dump, str) else github_dump
     elif record_path and record_path.exists():
         mod = loadmod(record_path)
-        gdata = {k: getattr(mod, k) for k in dir(mod) if not k.startswith("_")}
+        gdata = {
+            "ref": mod.ref,
+            "sha": mod.sha,
+            "run_number": mod.build,
+            "run_id": mod.runid,
+        }
     elif repo:
         gdata = {
             "ref": repo.head.name,
@@ -318,6 +325,7 @@ def get_data(
     expr1 = re.compile(r"(?P<version>\d+([.]\d+)*)(?P<num>b\d+)?$")
 
     result["branch"] = lstrip(gdata["ref"], "refs/heads/")
+    result["ref"] = gdata["ref"]
     result["hash"] = gdata["sha"] + ("*" if dirty else "")
     result["build"] = gdata["run_number"]
     result["runid"] = gdata["run_id"]
@@ -358,16 +366,16 @@ def update_version(
 
     data = get_data(version_file, github_dump, abort=abort)[0]
     set_module_var(version_file, "__version__", data["version"])
-    set_module_var(version_file, "__hash__", data["hash"])
+    set_module_var(version_file, "__hash__", (data["hash"] or "")[:7])
     return data["version"]
 
 
 def process(
     version_file: str | Path,
     github_dump: str | None = None,
+    record: str | Path = "_build.py",
     paths: str | Path | list[str | Path] | None = None,
     fixers: dict[str, str] | None = None,
-    record: str | Path = "_build.py",
     abort: bool = True,
 ) -> dict[str, str | None]:
     """get version from github_dump and updates version_file/paths
@@ -407,7 +415,7 @@ def process(
     record_path = (Path(version_file).parent / record).absolute() if record else None
     data, _ = get_data(version_file, github_dump, record_path, abort)
     set_module_var(version_file, "__version__", data["version"])
-    set_module_var(version_file, "__hash__", data["hash"])
+    set_module_var(version_file, "__hash__", (data["hash"] or "")[:7])
 
     env = Environment(autoescape=True)
     env.filters["urlquote"] = partial(quote, safe="")

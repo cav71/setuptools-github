@@ -1,4 +1,5 @@
 # ruff: noqa: E501
+import json
 
 import pytest
 from setuptools_github import tools
@@ -6,22 +7,22 @@ from setuptools_github import tools
 # this is the output from ${{ toJson(github) }}
 GITHUB = {
     "beta": {
-        "ref": "refs/heads/beta/0.0.4",
-        "sha": "2169f90c22e",
-        "run_number": "8",
-        "run_id": 123,
+        "ref": "refs/heads/beta/0.3.10",
+        "sha": "507c657056d1a66520ec6b219a64706e70b0ff15",
+        "run_number": "98",
+        "run_id": "5904313530",
     },
     "release": {
-        "ref": "refs/tags/release/0.0.3",
-        "sha": "5547365c82",
-        "run_number": "3",
-        "run_id": 456,
+        "ref": "refs/tags/release/0.3.9",
+        "sha": "2b79a3669cd06e21741f6ee7a271903482344e76",
+        "run_number": "22",
+        "run_id": "5789585760",
     },
     "master": {
         "ref": "refs/heads/master",
-        "sha": "2169f90c",
-        "run_number": "20",
-        "run_id": 789,
+        "sha": "9df889992f422a62cdd3ced41323eaba6e855ae3",
+        "run_number": "257",
+        "run_id": "5789314202",
     },
 }
 
@@ -312,32 +313,32 @@ def test_update_version_master(git_project_factory):
 
     assert "1.2.3" == tools.update_version(repo.initfile, GITHUB["master"], abort=False)
     assert tools.get_module_var(repo.initfile) == "1.2.3"
-    assert tools.get_module_var(repo.initfile, "__hash__") == "2169f90c"
+    assert tools.get_module_var(repo.initfile, "__hash__") == GITHUB["master"]["sha"][:7]
 
 
 def test_update_version_beta(git_project_factory):
     "test the update_version processing on the master branch"
 
-    repo = git_project_factory().create("0.0.4")
-    assert tools.get_module_var(repo.initfile) == "0.0.4"
+    repo = git_project_factory().create("0.3.10")
+    assert tools.get_module_var(repo.initfile) == "0.3.10"
     assert repo.branch() == "master"
 
     # branch
-    repo.branch("beta/0.0.4", "master")
-    assert repo.branch() == "beta/0.0.4"
+    repo.branch("beta/0.3.10", "master")
+    assert repo.branch() == "beta/0.3.10"
 
     assert tools.update_version(repo.initfile, abort=False)
-    assert tools.get_module_var(repo.initfile) == "0.0.4b0"
+    assert tools.get_module_var(repo.initfile) == "0.3.10b0"
     assert (
         tools.get_module_var(repo.initfile, "__hash__")
         == repo(["rev-parse", "HEAD"])[:7]
     )
     repo.revert(repo.initfile)
 
-    assert tools.get_module_var(repo.initfile) == "0.0.4"
+    assert tools.get_module_var(repo.initfile) == "0.3.10"
     assert tools.update_version(repo.initfile, GITHUB["beta"], abort=False)
-    assert tools.get_module_var(repo.initfile) == "0.0.4b8"
-    assert tools.get_module_var(repo.initfile, "__hash__") == "2169f90c22e"
+    assert tools.get_module_var(repo.initfile) == "0.3.10b98"
+    assert tools.get_module_var(repo.initfile, "__hash__") == "507c657"
     repo.revert(repo.initfile)
 
     # wrong branch
@@ -359,28 +360,61 @@ def test_update_version_beta(git_project_factory):
 
 
 def test_update_version_release(git_project_factory):
-    repo = git_project_factory().create("0.0.3")
-    assert tools.get_module_var(repo.initfile) == "0.0.3"
+    repo = git_project_factory().create("0.3.9")
+    assert tools.get_module_var(repo.initfile) == "0.3.9"
 
     # branch
-    repo.branch("beta/0.0.3", "master")
-    assert repo.branch() == "beta/0.0.3"
+    repo.branch("beta/0.3.9", "master")
+    assert repo.branch() == "beta/0.3.9"
 
     path = repo.workdir / "hello.txt"
     path.write_text("hello world\n")
     repo.commit(path, "initial")
 
-    repo(["tag", "release/0.0.3", repo(["rev-parse", "HEAD"])[:7]])
+    repo(["tag", "release/0.3.9", repo(["rev-parse", "HEAD"])[:7]])
 
     assert (
-        tools.update_version(repo.initfile, GITHUB["release"], abort=False) == "0.0.3"
+        tools.update_version(repo.initfile, GITHUB["release"], abort=False) == "0.3.9"
     )
-    assert tools.get_module_var(repo.initfile) == "0.0.3"
-    assert tools.get_module_var(repo.initfile, "__hash__") == "5547365c82"
+    assert tools.get_module_var(repo.initfile) == "0.3.9"
+    assert tools.get_module_var(repo.initfile, "__hash__") == GITHUB["release"]["sha"][:7]
     repo.revert(repo.initfile)
 
 
 def test_process(git_project_factory):
+
+    # generate the project
+    repo = git_project_factory().create("0.3.10")
+    assert repo.initfile.read_text() == '__version__ = "0.3.10"\n'
+
+    record = repo.initfile.parent / "_build.py"
+    assert not record.exists()
+
+    # we generate the build using a GITHUB_DUMP variable
+    tools.process(repo.initfile, json.dumps(GITHUB["beta"]), record)
+
+    assert repo.initfile.read_text() == f"""
+__version__ = "0.3.10b98"
+__hash__ = "{GITHUB['beta']['sha'][:7]}"
+""".strip()
+
+    assert record.read_text() == """
+# autogenerate build file
+branch = 'beta/0.3.10'
+build = '98'
+current = '0.3.10'
+hash = '507c657056d1a66520ec6b219a64706e70b0ff15'
+ref = 'refs/heads/beta/0.3.10'
+runid = '5904313530'
+version = '0.3.10b98'
+workflow = 'beta'
+""".lstrip()
+
+
+
+
+
+def test_process_fixers(git_project_factory):
     def write_tfile(tfile):
         tfile.write_text(
             """
@@ -396,7 +430,7 @@ Key[{{k}}] = {{v}}
     # tfile won't appear in the repo.status() because is untracked
     tfile = write_tfile(repo.workdir / "test.txt")
 
-    data = tools.process(repo.initfile, None, tfile)
+    data = tools.process(repo.initfile, None, "_build.py", tfile)
 
     assert data["hash"][-1] != "*"
 
@@ -407,6 +441,7 @@ Key[branch] = master
 Key[build] = 0
 Key[current] = 1.2.3
 Key[hash] = {data['hash']}
+Key[ref] = {data['ref']}
 Key[runid] = 0
 Key[version] = 1.2.3
 Key[workflow] = master
@@ -420,7 +455,7 @@ Key[workflow] = master
     write_tfile(tfile)
     repo.branch("beta/1.2.3", "master")
 
-    data = tools.process(repo.initfile, None, tfile)
+    data = tools.process(repo.initfile, None, "_build.py", tfile)
     assert data["hash"][-1] != "*"
 
     assert (
@@ -430,6 +465,7 @@ Key[branch] = beta/1.2.3
 Key[build] = 0
 Key[current] = 1.2.3
 Key[hash] = {data['hash']}
+Key[ref] = {data['ref']}
 Key[runid] = 0
 Key[version] = 1.2.3b0
 Key[workflow] = beta
