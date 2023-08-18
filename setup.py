@@ -18,12 +18,15 @@ GDATA = tools.process(
     # (see .github/workflows/master.yml)
     github_dump=os.getenv("GITHUB_DUMP"),
     # a list of files, processed using jinja2
+    # fixers will replace text in `paths
     paths=[
         PROOT / "README.md",
     ],
-    # fixed simply text replace {old: new} in every paths file
-    # once the replacement happens, the paths file get jinja2
-    # processed with a ctx context having:
+    # fixers replacements are key:value pairs.
+    # key might be a literal string (replaced with value) or a
+    # string starting with `re:`, in that case key and value are
+    # regular expression arguments to `re.sub`.
+    # value are jinja2 processed with a ctx context having:
     #   ctx.__dict__ == {
     #       'branch': 'master',  <- current branch
     #       'build': 123,        <- build no. (github)
