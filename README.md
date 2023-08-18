@@ -13,6 +13,10 @@
 
 
 ## Quick start
+
+- [install the package](#install)
+- [setup the __init__.py file](#initfile)
+
 setuptools-github helps to implement a simple project life cycle
 aimed at delivering packages into [PyPI](https://pypi.org) from a hosted project at
 [Github](https://www.gitgub.com). 
@@ -39,14 +43,14 @@ The project should conform to this layout style:
 > [hatch-ci plugin](https://pypi.org/project/hatch-ci)
 
 
-#### install the package
+#### install the package <a name="install"/>
 ```bash
 pip install setuptools-github
  or
 conda install -c conda-forge setuptools-github
 ```
 
-#### put the initial version info in the version_file
+#### put the initial version info in the version_file <a name="initfile"/>
 Create a new `src/project_name/__init__.py` file to store the package information:
 ```
 __version__ = "N.M.O"  # replace N, M and O with numerical values (eg. 0.0.0)
