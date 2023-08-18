@@ -20,7 +20,7 @@ GDATA = tools.process(
     github_dump=os.getenv("GITHUB_DUMP"),
 
     # a list of files, processed using jinja2
-    # fixers will replace text in `paths
+    # where fixers (defined below) will replace text in `paths
     paths=[
         PROOT / "README.md",
     ],
