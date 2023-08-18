@@ -16,7 +16,8 @@
 setuptools-github helps to implement a simple project life cycle
 aimed at delivering packages into [PyPI](https://pypi.org) from a hosted project at
 [Github](https://www.gitgub.com). 
-We assume this layout:
+
+The project should conform to this layout style:
 ```python
   project-name/
   ├── setup.py
@@ -58,11 +59,11 @@ from setuptools_github import tools
 
 setup(
   name="project-name",
-  version=tools.update_version(version_file, os.getenv("GITHUB_DUMP")),
+  version=tools.process(version_file, os.getenv("GITHUB_DUMP"))["version"],
   ...
 ```
-> **NOTE**: there's an advanced function `tools.process` that can update 
-> and process files like the readmes (see an example in [setup.py](https://raw.githubusercontent.com/cav71/setuptools-github/master/setup.py))
+> **NOTE**: there's an annotated `tools.process` example in [setup.py](https://raw.githubusercontent.com/cav71/setuptools-github/master/setup.py)
+> with support for keyword substitution on text files.
 
 #### Add the github workflow files
 - [github/workflows/master.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/master.yml)
