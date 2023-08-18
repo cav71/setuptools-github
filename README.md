@@ -19,7 +19,7 @@ where the target is delivering packages into [PyPI](https://pypi.org) from a hos
 
 The idea is rather simple (and detailed in [here](https://cavallinux.org/projects/branched-based-deployment/index.html)):
 - commits on a master branch will trigger code checks (static checks, tests etc.)
-- commits on a `beta/N.M.O` branch will do all the previous checks + publishing a beta package N.M.ObXXX on [PyPI](https://pypi.org)
+- commits on a `beta/N.M.O` branch will do all the previous checks + publishing a beta package N.M.Ob**XXX** (**XXX** is an increaing number) on [PyPI](https://pypi.org)
 - tagging on a `beta/N.M.O` branch will publish an official package on [PyPI](https://pypi.org) for N.M.O 
 
 See [here](https://pypi.org/project/setuptools-github/#history) for what the life cycle implementation looks like.
@@ -42,7 +42,7 @@ See [here](https://pypi.org/project/setuptools-github/#history) for what the lif
 ### Setup the project <a name="quickstart"/>
 
 The project should conform to this layout style:
-```python
+```text
   project-name/
   ├── setup.py
   ├── pyproject.toml
