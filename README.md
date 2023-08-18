@@ -22,6 +22,10 @@ The idea is rather simple (and detailed in [here](https://cavallinux.org/project
 - commits on a `beta/N.M.O` branch will do all the previous checks + publishing a beta package N.M.ObXXX on [PyPI](https://pypi.org)
 - tagging on a `beta/N.M.O` branch will publish an official package on [PyPI](https://pypi.org) for N.M.O 
 
+See [here](https://pypi.org/project/setuptools-github/#history) for a life cycle implementation.
+
+### Index
+
 1. [Setup the project](#quickstart)
     - [install the package](#install)
     - [setup the __init__.py file](#initfile)
