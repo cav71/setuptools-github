@@ -14,9 +14,11 @@ GDATA = tools.process(
     # versionfile containing the __version__ / __hash__ module variables
     # (they will be update during build)
     version_file=PROOT / "src/setuptools_github/__init__.py",
+
     # this is the github environ (the output of ${{ toJson(github) }})
     # (see .github/workflows/master.yml)
     github_dump=os.getenv("GITHUB_DUMP"),
+
     # a list of files, processed using jinja2
     # fixers will replace text in `paths
     paths=[
