@@ -13,10 +13,14 @@
 
 
 ## Introduction
-setuptools-github helps to implement a simple project life cycle
-aimed at delivering packages into [PyPI](https://pypi.org) from a hosted project at
+setuptools-github helps to setup a simple project life cycle
+where the target is delivering packages into [PyPI](https://pypi.org) from a hosted project at
 [Github](https://www.gitgub.com). 
 
+The idea is rather simple (and detailed in [here](https://cavallinux.org/projects/branched-based-deployment/index.html)):
+- commits on a master branch will trigger code checks (static checks, tests etc.)
+- commits on a `beta/N.M.O` branch will do all the previous checks + publishing a beta package N.M.ObXXX on [PyPI](https://pypi.org)
+- tagging on a `beta/N.M.O` branch will publish an official package on [PyPI](https://pypi.org) for N.M.O 
 
 1. [Setup the project](#quickstart)
     - [install the package](#install)
@@ -25,6 +29,11 @@ aimed at delivering packages into [PyPI](https://pypi.org) from a hosted project
 2. [Setup the workflow files](#worflows)
     - [add the files](#workflows-add-files)
     - [setup the secrets](#workflows-setup-secrets)
+3. [Working on branches](#branches)
+    - [commit on the master branch](#master-branch)
+    - [commit on a beta/N.M.O branch](#beta-branch)
+    - [releasing on tags](#release-tag)
+
 
 ### Setup the project <a name="quickstart"/>
 
@@ -78,13 +87,16 @@ setup(
 > with support for keyword substitution on text files.
 
 ## Setup the github workflow files <a name="worflows"/>
+These are the steps in order to automated the build process on github.
 
-#### add the files <a name="workflows-add-files"/>
+#### add workflow files <a name="workflows-add-files"/>
 Add these workflows file to your project:
 
 - [github/workflows/master.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/master.yml)
 - [github/workflows/beta.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/beta.yml)
 - [github/workflows/tags.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/tags.yml)
+
+This will trigger a build on a master branch XXX, a build on any 
 
 > **NOTE**: Most likely you might need to change:
 > - the `tests/requirements.txt` file
@@ -106,9 +118,9 @@ THAT IS ALL! Now when commit to the master branch, this will trigger the
 github action to run tests and quality checks on the code 
 ---
 
-## Working with branches
+## Working with branches  <a name="#branches"/>
 
-### Working with the master branch
+### commit on the master branch <a name="#master-branch"/>
 
 Every time there's a commit on the **master** branch, this will trigger
 the workflow under ./github/workflows/master.yml:
@@ -118,7 +130,7 @@ the workflow under ./github/workflows/master.yml:
 
 On completion static and dynamic tests are supported.
 
-### Setup the beta/N.M.O branch
+### commit on a beta/N.M.O branch <a name="#beta-branch"/>
 
 In order to prepare for a release a new **beta/N.M.O** branch should be created:
 ```python
