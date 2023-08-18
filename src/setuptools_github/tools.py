@@ -405,7 +405,7 @@ def process(
                 yield (name, value)
 
     record_path = (Path(version_file).parent / record).absolute() if record else None
-    data, gdata = get_data(version_file, github_dump, record_path, abort)
+    data, _ = get_data(version_file, github_dump, record_path, abort)
     set_module_var(version_file, "__version__", data["version"])
     set_module_var(version_file, "__hash__", data["hash"])
 
@@ -420,7 +420,7 @@ def process(
         record_path.parent.mkdir(parents=True, exist_ok=True)
         with record_path.open("w") as fp:
             print("# autogenerate build file", file=fp)
-            for key, value in sorted((gdata or {}).items()):
+            for key, value in sorted((data or {}).items()):
                 value = f"'{value}'" if isinstance(value, str) else value
                 print(f"{key} = {value}", file=fp)
 

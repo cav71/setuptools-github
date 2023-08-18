@@ -13,7 +13,7 @@ export GITHUB_DUMP
 
 
 help:
-	@echo "make help|build"
+	@echo "make help|tests|build"
 	@echo ""
 	@echo "Vars"
 	@echo "  REF:          $(REF)"
@@ -55,6 +55,6 @@ branch:
 
 clean:
 	-git checkout src/setuptools_github/__init__.py README.md
-	rm -rf dist setuptools_github.egg-info src/setuptools_github/_build.py
+	rm -rf dist setuptools_github.egg-info src/setuptools_github/build.json
 
 .PHONY: tests branch
