@@ -22,7 +22,7 @@ The idea is rather simple (and detailed in [here](https://cavallinux.org/project
 - commits on a `beta/N.M.O` branch will do all the previous checks + publishing a beta package N.M.ObXXX on [PyPI](https://pypi.org)
 - tagging on a `beta/N.M.O` branch will publish an official package on [PyPI](https://pypi.org) for N.M.O 
 
-See [here](https://pypi.org/project/setuptools-github/#history) for a life cycle implementation.
+See [here](https://pypi.org/project/setuptools-github/#history) for what the life cycle implementation looks like.
 
 ### Index
 
@@ -33,7 +33,7 @@ See [here](https://pypi.org/project/setuptools-github/#history) for a life cycle
 2. [Setup the workflow files](#worflows)
     - [add the files](#workflows-add-files)
     - [setup the secrets](#workflows-setup-secrets)
-3. [Working on branches](#branches)
+3. [Working with branches](#branches)
     - [commit on the master branch](#master-branch)
     - [commit on a beta/N.M.O branch](#beta-branch)
     - [releasing on tags](#release-tag)
@@ -90,8 +90,8 @@ setup(
 > **NOTE**: there's an annotated `tools.process` example in [setup.py](https://raw.githubusercontent.com/cav71/setuptools-github/master/setup.py)
 > with support for keyword substitution on text files.
 
-## Setup the github workflow files <a name="worflows"/>
-These are the steps in order to automated the build process on github.
+### Setup the workflow files <a name="worflows"/>
+These are the steps to automate the build process on github.
 
 #### add workflow files <a name="workflows-add-files"/>
 Add these workflows file to your project:
@@ -122,9 +122,9 @@ THAT IS ALL! Now when commit to the master branch, this will trigger the
 github action to run tests and quality checks on the code 
 ---
 
-## Working with branches  <a name="#branches"/>
+### Working with branches  <a name="#branches"/>
 
-### commit on the master branch <a name="#master-branch"/>
+#### commit on the master branch <a name="#master-branch"/>
 
 Every time there's a commit on the **master** branch, this will trigger
 the workflow under ./github/workflows/master.yml:
@@ -134,7 +134,7 @@ the workflow under ./github/workflows/master.yml:
 
 On completion static and dynamic tests are supported.
 
-### commit on a beta/N.M.O branch <a name="#beta-branch"/>
+#### commit on a beta/N.M.O branch <a name="#beta-branch"/>
 
 In order to prepare for a release a new **beta/N.M.O** branch should be created:
 ```python
@@ -159,7 +159,7 @@ properly:
 > This means **project-N.M.O.bX** < **project-N.M.O** allowing 
 > the correct package ordering.
 
-### Release the project N.M.O
+#### releasing on tags
 To release an official package for **project-N.M.O** from
 the **beta/N.M.O** branch:
 ```python
