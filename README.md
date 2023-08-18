@@ -12,6 +12,12 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 
+## Introduction
+setuptools-github helps to implement a simple project life cycle
+aimed at delivering packages into [PyPI](https://pypi.org) from a hosted project at
+[Github](https://www.gitgub.com). 
+
+
 1. [Setup the project](#quickstart)
     - [install the package](#install)
     - [setup the __init__.py file](#initfile)
@@ -20,11 +26,7 @@
     - [add the files](#workflows-add-files)
     - [setup the secrets](#workflows-setup-secrets)
 
-## Setup the project <a name="quickstart"/>
-
-setuptools-github helps to implement a simple project life cycle
-aimed at delivering packages into [PyPI](https://pypi.org) from a hosted project at
-[Github](https://www.gitgub.com). 
+### Setup the project <a name="quickstart"/>
 
 The project should conform to this layout style:
 ```python
@@ -56,7 +58,7 @@ conda install -c conda-forge setuptools-github
 ```
 
 #### setup up the initial version_file <a name="initfile"/>
-Create a new `src/project_name/__init__.py` file to store the package information:
+Create a new version_file `src/project_name/__init__.py` file to store the package information:
 ```
 __version__ = "N.M.O"  # replace N, M and O with numerical values (eg. 0.0.0)
 __hash__ = ""  # leave this empty
