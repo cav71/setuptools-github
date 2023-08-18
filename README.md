@@ -12,10 +12,15 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 
-## Quick start
+1. [Setup the project](#quickstart)
+    - [install the package](#install)
+    - [setup the __init__.py file](#initfile)
+    - [fix the setup.py file](#setuppy)
+2. [Setup the workflow files](#worflows)
+    - [add the files](#workflows-add-files)
+    - [setup the secrets](#workflows-setup-secrets)
 
-- [install the package](#install)
-- [setup the __init__.py file](#initfile)
+## Setup the project <a name="quickstart"/>
 
 setuptools-github helps to implement a simple project life cycle
 aimed at delivering packages into [PyPI](https://pypi.org) from a hosted project at
@@ -50,14 +55,15 @@ pip install setuptools-github
 conda install -c conda-forge setuptools-github
 ```
 
-#### put the initial version info in the version_file <a name="initfile"/>
+#### setup up the initial version_file <a name="initfile"/>
 Create a new `src/project_name/__init__.py` file to store the package information:
 ```
 __version__ = "N.M.O"  # replace N, M and O with numerical values (eg. 0.0.0)
 __hash__ = ""  # leave this empty
 ```
 
-#### Fix the setup.py file
+#### Fix the setup.py file <a name="setuppy"/>
+Include in the `setup.py` file:
 ```
 from setuptools_github import tools
 
@@ -69,7 +75,11 @@ setup(
 > **NOTE**: there's an annotated `tools.process` example in [setup.py](https://raw.githubusercontent.com/cav71/setuptools-github/master/setup.py)
 > with support for keyword substitution on text files.
 
-#### Add the github workflow files
+## Setup the github workflow files <a name="worflows"/>
+
+#### add the files <a name="workflows-add-files"/>
+Add these workflows file to your project:
+
 - [github/workflows/master.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/master.yml)
 - [github/workflows/beta.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/beta.yml)
 - [github/workflows/tags.yml](https://github.com/cav71/setuptools-github/blob/master/.github/workflows/tags.yml)
@@ -78,8 +88,7 @@ setup(
 > - the `tests/requirements.txt` file
 > - the envs variables at the beging of `master.yml` and `beta.yml`
 
-
-#### Add secrets
+#### Setup github secrets <a name="workflows-setup-secrets"/>
 In order to publish to codecov the coveragen info and to PyPI the wheels,
 you need to set the github secrets under:
 
