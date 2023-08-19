@@ -403,16 +403,14 @@ __hash__ = "{GITHUB['beta']['sha'][:7]}"
 branch = 'beta/0.3.10'
 build = '98'
 current = '0.3.10'
-hash = '507c657056d1a66520ec6b219a64706e70b0ff15'
 ref = 'refs/heads/beta/0.3.10'
 runid = '5904313530'
+sha = '507c657056d1a66520ec6b219a64706e70b0ff15'
 version = '0.3.10b98'
 workflow = 'beta'
 """.lstrip()
 
-
-
-
+    tools.process(repo.initfile, None, record)
 
 def test_process_fixers(git_project_factory):
     def write_tfile(tfile):
@@ -432,7 +430,7 @@ Key[{{k}}] = {{v}}
 
     data = tools.process(repo.initfile, None, "_build.py", tfile)
 
-    assert data["hash"][-1] != "*"
+    assert data["sha"][-1] != "*"
 
     assert (
         tfile.read_text()
@@ -440,9 +438,9 @@ Key[{{k}}] = {{v}}
 Key[branch] = master
 Key[build] = 0
 Key[current] = 1.2.3
-Key[hash] = {data['hash']}
 Key[ref] = {data['ref']}
 Key[runid] = 0
+Key[sha] = {data['sha']}
 Key[version] = 1.2.3
 Key[workflow] = master
 """
@@ -456,7 +454,7 @@ Key[workflow] = master
     repo.branch("beta/1.2.3", "master")
 
     data = tools.process(repo.initfile, None, "_build.py", tfile)
-    assert data["hash"][-1] != "*"
+    assert data["sha"][-1] != "*"
 
     assert (
         tfile.read_text()
@@ -464,9 +462,9 @@ Key[workflow] = master
 Key[branch] = beta/1.2.3
 Key[build] = 0
 Key[current] = 1.2.3
-Key[hash] = {data['hash']}
 Key[ref] = {data['ref']}
 Key[runid] = 0
+Key[sha] = {data['sha']}
 Key[version] = 1.2.3b0
 Key[workflow] = beta
 """
