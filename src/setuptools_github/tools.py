@@ -93,8 +93,11 @@ def list_of_paths(paths: str | Path | list[str | Path] | None) -> list[Path]:
     return [Path(s) for s in ([paths] if isinstance(paths, (str, Path)) else paths)]
 
 
-def lstrip(txt: str, left: str) -> str:
-    return txt[len(left) :] if txt.startswith(left) else txt
+def lstrip(txt: str, ending: str | list[str]) -> str:
+    endings = ending if isinstance(ending, list) else [ending]
+    for left in endings:
+        txt = txt[len(left) :] if txt.startswith(left) else txt
+    return txt
 
 
 def loadmod(path: Path) -> Any:
@@ -370,7 +373,7 @@ def get_data(
     data["build"] = gdata["run_number"]
     data["runid"] = gdata["run_id"]
 
-    data["branch"] = lstrip(gdata["ref"], "refs/heads/")
+    data["branch"] = lstrip(gdata["ref"], ["refs/heads/", "refs/tags/"])
     data["workflow"] = data["branch"]
 
     current = data["current"]
